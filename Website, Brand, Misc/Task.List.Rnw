@@ -1,0 +1,60 @@
+\documentclass{article}
+\usepackage{Sweave}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage[small]{caption}
+\usepackage{gensymb}
+\usepackage{float}
+\usepackage{url}
+\setkeys{Gin}{width=0.8\textwidth}
+\setlength{\captionmargin}{30pt}
+\setlength{\abovecaptionskip}{0pt}
+\setlength{\belowcaptionskip}{10pt}
+\topmargin -1.5cm        
+\oddsidemargin -0.04cm   
+\evensidemargin -0.04cm
+\textwidth 16.59cm
+\textheight 21.94cm 
+\pagestyle{empty}
+\parskip 7.2pt
+\renewcommand{\baselinestretch}{1.5}
+\parindent 0pt
+\begin{document}
+
+\renewcommand{\thetable}{\arabic{table}}
+\renewcommand{\thefigure}{\arabic{figure}}
+\renewcommand{\labelitemi}{$-$}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Prioritized List}
+\author{Suzanne Mrozak, Danny Schissler, Cat Chamberlain}
+\date{\today}
+\maketitle
+\section*{AIM}
+The goal of this document is to formulate a prioritized task list to be completed before the fall. This is our two month plan. The next step is to establish a 4-6 month plan and then a one year plan. 
+\section*{TO DO ASAP}
+\begin{enumerate}
+\item Review the goals of the program
+\begin{enumerate}
+  \item Mission Statement: 1 Year Plan
+  \item Vision Statement: 3-5 Year Plan
+\end{enumerate}
+\item Review communication options and determine our approach. Consolidate our current resources -- Arb website, Facebook, Meetup, Temporal Ecology lab site, Flickr, Google, Twitter. Should we make a new website, affiliated with the Temporal Ecology site but one that has our own logo and design in an effort to transition to become more strongly associated with the Arboretum?
+\item We need a better way to distribute Spot On! and in general, a more efficient way to contact all Tree Spotters. Adjust Tree Spotters email address and system. 
+\item Contact NPN about doing a presentation for the annual NPN partners' showcase
+\item Review and revise basic training lsides. Create a fall and spring version, with fall training being the immediate priority. 
+\begin{enumerate}
+  \item What are we doing with the data? How do we communicate this to the Tree Spotters in a more approachable manner?
+\end{enumerate}
+\item Develop additional training and support materials
+\begin{enumerate}
+  \item How to use your NPN Observation Deck
+  \item What you can do with the data
+  \item Online Focus Tree Notebook -- Biggest Priority! 
+  \item Updated guides that covers all of the phenophases for each tree 
+\end{enumerate}
+\end{enumerate}
+\section*{PROGRESS}
+We have started working on establishing both a Mission and Vision Statement. We are in the process of desiging a new training regime and program. Next week, Suz will be meeting with volunteers to start working on a prototype for the Focus Tree Notebook. We understand that we are still in pilote mode but we are working hard to transition out of that phase and into more stability. 
+
+
+\end{document}

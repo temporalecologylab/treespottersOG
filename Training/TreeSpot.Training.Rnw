@@ -1,0 +1,82 @@
+\documentclass{article}
+\usepackage{Sweave}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage[small]{caption}
+\usepackage{gensymb}
+\usepackage{float}
+\usepackage{url}
+\setkeys{Gin}{width=0.8\textwidth}
+\setlength{\captionmargin}{30pt}
+\setlength{\abovecaptionskip}{0pt}
+\setlength{\belowcaptionskip}{10pt}
+\topmargin -1.5cm        
+\oddsidemargin -0.04cm   
+\evensidemargin -0.04cm
+\textwidth 16.59cm
+\textheight 21.94cm 
+\pagestyle{empty}
+\parskip 7.2pt
+\renewcommand{\baselinestretch}{1.5}
+\parindent 0pt
+
+\begin{document}
+
+\renewcommand{\thetable}{\arabic{table}}
+\renewcommand{\thefigure}{\arabic{figure}}
+\renewcommand{\labelitemi}{$-$}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Fall Training Outline}
+\author{Suzanne Mrozak, Danny Schissler, Cat Chamberlain}
+\date{\today}
+\maketitle
+\section*{Aim}
+The goal of this outline is to determine time limits for each section and what we deem to be crucial in the training session. We want to be effective and efficient and for this to be reproducible. The hope is to make a solid base to work from for the Spring training and even the Jump Start training sessions. 
+\par
+\section*{Outline}
+\begin{enumerate}
+  \item Introduction ($\sim 35-40$ minutes)
+  \begin{itemize}
+    \item Agenda
+    \item Overview - why are we doing this and why do we need their help
+    \item Explanation - what is phenology
+    \begin{itemize}
+      \item Touch on Climate Change
+      \item Discuss Citizen Science
+    \end{itemize}
+    \item Our Trees - what they are and why we chose them
+    \item Phenophases - what are phenophases and how does it tie in with the goal
+    \begin{itemize}
+      \item Highlight Fall phenophases and focus of this training session
+    \end{itemize}
+    \item Should we still keep the meeting a fellow tree spotter here? (~15 minutes)
+    \end{itemize}
+{\textbf{BREAK} ($\sim 10$ minutes)}
+  \item Being a Tree Spotter ($\sim 35-40$ minutes)
+  \begin{itemize}
+    \item Phenophases
+    \begin{itemize}
+      \item Defining phenophases - highlighting fall phases
+      \item Show pictures from Flickr
+    \end{itemize}
+    \item Making and Recording Observations
+    \begin{itemize}
+      \item Nature's Notebook - mention training session after
+      \item Routes
+      \item Datasheets
+      \item Explanation of recordings
+    \end{itemize}
+  \end{itemize}
+  \item Goals and Importance ($\sim 35-40$ minutes)
+  \begin{itemize}
+    \item Explanation of Lizzie's lab and Arboretum
+    \item Explanation of how the data will be used and why
+    \item Explanation of our goals and vision
+    \item Emphasis on why they are important -- feedback forms here?
+    \item Discuss Focus Tree, Spotting Together, Botany Blasts, holiday party, etc.
+    \item What happens next and first steps
+    \item Resources they can use
+  \end{itemize}
+\end{enumerate}
+    
+\end{document}
