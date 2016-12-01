@@ -89,7 +89,9 @@ total1 <- total %>%
   filter(date.tot >= "2016/01/01") %>%
   group_by(Plant_Nickname,Observation_ID)%>%
   select(Day_of_Year,Plant_Nickname,Observation_ID, Common_Name)
-total.count<-as.data.frame(table(total1,Plant_Nickname))
+total.count<-as.data.frame(table(total1$Plant_Nickname)) %>%
+  rename(Plant_Nickname = Var1) %>%
+  rename(n = Freq)
 tot<-full_join(total.count,total1, by = "Plant_Nickname")%>%
   group_by(Plant_Nickname)%>%
   filter(row_number()==1) %>%
