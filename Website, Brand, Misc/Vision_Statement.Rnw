@@ -27,7 +27,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \title{Vision Statement}
 \author{Suzanne Mrozak, Danny Schissler, and Cat Chamberlain}
-\date{\today}
+\date{}
 \maketitle 
 \section*{Vision Statement}
 \begin{enumerate}
