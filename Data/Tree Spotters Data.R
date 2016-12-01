@@ -7,23 +7,16 @@ rm(list=ls())
 options(stringsAsFactors = FALSE)
 
 
-# Install Packages
-ipak <- function(pkg){
-  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
-  if (length(new.pkg)) 
-    install.packages(new.pkg, dependencies = TRUE)
-  sapply(pkg, require, character.only = TRUE)
-}
-packages <- c("ggplot2", "plyr", "dplyr", "tidyr", "tidytext",
-              "purrr", "Hmisc", "lme4")
-ipak(packages)
+# Load Libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
 
 # Integrate Phenology Data and compare methodologies
 # Set Working Directory
-setwd("~/Documents/Temporal Ecology/TreeSpotters")
-record<-read.csv("treespot.csv",header=TRUE,sep=",")
-attach(record)
-head(record)
+setwd("~/Documents/git/treespotters/Data")
+record<-read.csv("treespotters.Dec2016.csv",header=TRUE,sep=",")
 
 # Blend
 blend<-record %>% 
@@ -39,7 +32,7 @@ ggplot(blend,aes(x=Route,y=Recordings, fill=factor(Year))) +
                       name="Number of Recordings")
 
 # Volunteer Data and Retention Rate
-observers<-read.csv("treespotupdate.csv",header=TRUE,sep=",")
+observers<-read.csv("potluck.presentation.csv",header=TRUE,sep=",")
 attach(observers)
 
 retention<- observers%>%
