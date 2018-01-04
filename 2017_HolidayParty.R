@@ -67,5 +67,14 @@ dx.h<-filter(dx, pheno!="Breaking leaf buds")
 ggplot(dx.h, aes(x=species, y=mean)) + geom_point(aes(color=pheno)) + facet_wrap(~as.factor(year)) + 
   coord_flip() + ylab("Day of Year") + xlab("Species")
 
+df<-dplyr::select(d, ObservedBy_Person_ID, First_Yes_Year)
+df<-filter(df, First_Yes_Year>2016)
+dx<-df %>% 
+  mutate(ObservedBy_Person_ID = strsplit(as.character(ObservedBy_Person_ID), ",")) %>% 
+  unnest(ObservedBy_Person_ID)
 
+dx[] <- lapply(dx, gsub, pattern="'", replacement="")
+dx<-dx[!duplicated(dx),]
+length(unique(dx$ObservedBy_Person_ID))
+                 #[1] 73
 
