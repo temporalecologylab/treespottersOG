@@ -1,11 +1,11 @@
 Parameter,Setting
 Data Type:,Individual Phenometrics
-Start Date:,2014-01-01
+Start Date:,2010-01-01
 End Date:,2018-12-31
 States:,MA
 Species:,
-Phenophase Categories:,"Flowers, Leaves, Fruits"
-Output Fields:,"Dataset ID, ObservedBy Person ID, Plant Nickname, NumYs in Series, Multiple Observers, Accum Prcp, Daylength"
+Phenophase Categories:,
+Output Fields:,"NumYs in Series, Accum Prcp, Daylength"
 Quality Flags:,ignored
 Partner Groups:,Arnold Arboretum - Tree Spotters Program
 Integrated Datasets:,

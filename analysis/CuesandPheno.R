@@ -1,6 +1,8 @@
 ### 19 April 2019 - by Cat ###
 ## Let's play around with some Tree Spotters data!
 ## Find Provenance Lat info and Age!
+## Updated 9 May 2018 with new TS data & Climate data
+### Weather data downloaded from... http://labs.arboretum.harvard.edu/weather/
 
 # ## housekeeping
 rm(list=ls()) 
@@ -55,26 +57,32 @@ stan.bb<-stan.bb[!duplicated(stan.bb),]
 stan.bb$photo<-stan.bb$photo/3600
 x<-paste(stan.bb$year, stan.bb$doy)
 stan.bb$date<-as.Date(strptime(x, format="%Y %j"))
-stan.bb$photo<-ifelse(stan.bb$year==2017, daylength(stan.bb$lat, stan.bb$date), stan.bb$photo)
+stan.bb$photo<-ifelse(stan.bb$year==2018, daylength(stan.bb$lat, stan.bb$date), stan.bb$photo)
+
+### Clean observation error!
+stan.bb$doy<-ifelse(stan.bb$Species=="alleghaniensis"&stan.bb$year==2016&stan.bb$doy==59, NA, stan.bb$doy)
+stan.bb<-stan.bb[!is.na(stan.bb$doy),]
 
 ## Now bring in climate data...
 cc<-read.csv("input/weldhill.csv", header=TRUE)
 cc<-cc%>%
   rename(date.time=Eastern.daylight.time)
-cc$date<-substr(cc$date.time, 0, 9)
-cc$date<-ifelse(grepl('1$', cc$date), substr(cc$date.time, 0, 10), cc$date)
-cc$date<-ifelse(grepl(' $', cc$date), substr(cc$date.time, 0, 8), cc$date)
-cc$date<- as.Date(cc$date, "%m/%d/%Y")
+cc$date<-gsub("\\s* .*$", '', cc$date.time)
+cc$date<- as.Date(cc$date, "%m/%d/%y")
 cc$year<-substr(cc$date, 0, 4)
 cc$doy<-yday(cc$date)
+cc$hour<-gsub("^.* \\s*|\\s*:.*$", '', cc$date.time)
+
 cc<-dplyr::select(cc, Solar.Rad.W.m.2, Wind.Speed.mph, Wind.Dir, Temp..F, Dewpt..F, Temp.Soil..F,
-                  Rain.in, Pressure.inHg, date, year, doy)
+                  Rain.in, Pressure.inHg, date, year, doy, hour)
 cc$tmin<-ave(cc$Temp..F, cc$date, FUN=min)
 cc$tmin<-fahrenheit.to.celsius(cc$tmin)
 cc$tmax<-ave(cc$Temp..F, cc$date, FUN=max)
 cc$tmax<-fahrenheit.to.celsius(cc$tmax)
 cc$tmean<-ave(cc$Temp..F, cc$date)
 cc$tmean<-fahrenheit.to.celsius(cc$tmean)
+cc$tchill<-ave(cc$Temp..F, cc$date, cc$hour)
+cc$tchill<-fahrenheit.to.celsius(cc$tchill)
 
 cc$tmin.soil<-ave(cc$Temp.Soil..F, cc$date, FUN=min)
 cc$tmin.soil<-fahrenheit.to.celsius(cc$tmin.soil)
@@ -90,21 +98,53 @@ cc$solr<-ave(cc$Solar.Rad.W.m.2, cc$date)
 cc$windsp<-ave(cc$Wind.Speed.mph, cc$date)
 sm.cc<-dplyr::select(cc, -Temp..F, -Temp.Soil..F, -Dewpt..F, -Rain.in, -Wind.Dir, -Solar.Rad.W.m.2, -Wind.Speed.mph, -Pressure.inHg)
 sm.cc<-sm.cc[!duplicated(sm.cc),]
-sm.cc$aprecip<-NA
-ccx<-arrange(sm.cc, doy, year)
-ccx$aprecip <- ave(
-  ccx$precip, ccx$year,
+cc<-arrange(sm.cc, doy, year)
+
+ccx<-dplyr::select(cc, -hour)
+ccx<-ccx[!duplicated(ccx),]
+
+ccx$tchill<-ifelse(ccx$tchill>=0&ccx$tchill<=5, 1, 0)
+ccx$chill<-ave(
+  ccx$tchill, ccx$year,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
-ccx$gdd<-ifelse(ccx$tmean>0, ccx$tmean, 0)
-ccx$gdd<-ave(
-  ccx$gdd, ccx$year,
+ccx$chill.day<-ave(ccx$tchill, ccx$date, FUN = sum)
+
+ccwarm<-ccx%>%dplyr::select(doy, year, tmean)
+ccwarm<-ccwarm[!duplicated(ccwarm),]
+ccwarm$twarm<-ccwarm$tmean
+ccwarm$twarm<-ifelse(ccwarm$twarm>=5, ccwarm$twarm, 0)
+ccwarm$gdd<-ave(
+  ccwarm$twarm, ccwarm$year,
+  FUN=function(x) cumsum(c(0, head(x, -1)))
+)
+ccx<-full_join(ccx, ccwarm)
+
+ccpre<-ccx%>%dplyr::select(doy, year, precip)
+ccpre<-ccpre[!duplicated(ccpre),]
+ccpre$aprecip <- ave(
+  ccpre$precip, ccpre$year,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
 
+ccx<-full_join(ccx, ccpre)
+ccx<-dplyr::select(ccx, -precip)
 
-sm.cc<-ccx
-stan.cc<-sm.cc[!duplicated(sm.cc),]
+ccfrz<-ccx%>%dplyr::select(doy, year, tmin)
+ccfrz<-ccfrz[!duplicated(ccfrz),]
+ccfrz$frost<-ifelse(ccfrz$tmin<=-2.2, 1, 0)
+ccfrz$frost <- ave(
+  ccfrz$frost, ccfrz$year,
+  FUN=function(x) cumsum(c(0, head(x, -1)))
+)
+ccx<-full_join(ccx, ccfrz)
+
+test<-dplyr::select(ccx, doy, year, tmin, frost)
+test<-subset(test, test$year==2017)
+test<-filter(test, doy<220)
+test<-test[!duplicated(test),]
+
+stan.cc<-ccx[!duplicated(ccx),]
 
 
 ### Let's join em up!
@@ -112,6 +152,16 @@ stan.cc$year<-as.numeric(stan.cc$year)
 stan.cc$doy<-as.numeric(stan.cc$doy)
 stan.cc<-stan.cc%>%filter(year>=2015)
 stan.cc$frz<-ifelse(stan.cc$tmin<=-2.2, 1, 0)
+
+test<-dplyr::select(stan.cc, doy, year, tmin, frost, frz)
+test<-subset(test, test$year==2017)
+test<-filter(test, doy<220)
+test<-test[!duplicated(test),]
+
+stan.cc$chill<-ave(stan.cc$chill, stan.cc$date, FUN=max)
+stan.cc$chill.day<-ave(stan.cc$chill.day, stan.cc$date, FUN=max)
+
+stan.cc<-stan.cc[!duplicated(stan.cc),]
 
 stan.bb$doy<-as.numeric(stan.bb$doy)
 
@@ -136,6 +186,7 @@ fl.frz$frz <- ave(
   fl.frz$frz, fl.frz$year, fl.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+fl.frz<-fl.frz[!duplicated(fl.frz),]
 
 alleghaniensis.bb<-stan.bb%>%filter(Species=="alleghaniensis")%>%arrange(ID, year)
 alleghaniensis.bb$ID.year<-paste(alleghaniensis.bb$ID, alleghaniensis.bb$year)
@@ -159,6 +210,7 @@ al.frz$frz <- ave(
   al.frz$frz, al.frz$year, al.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+al.frz<-al.frz[!duplicated(al.frz),]
 
 nigra.bb<-stan.bb%>%filter(Species=="nigra")%>%arrange(ID, year)
 nigra.bb$ID.year<-paste(nigra.bb$ID, nigra.bb$year)
@@ -182,6 +234,7 @@ ni.frz$frz <- ave(
   ni.frz$frz, ni.frz$year, ni.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+ni.frz<-ni.frz[!duplicated(ni.frz),]
 
 glabra.bb<-stan.bb%>%filter(Species=="glabra")%>%arrange(ID, year)
 glabra.bb$ID.year<-paste(glabra.bb$ID, glabra.bb$year)
@@ -205,6 +258,7 @@ gl.frz$frz <- ave(
   gl.frz$frz, gl.frz$year, gl.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+gl.frz<-gl.frz[!duplicated(gl.frz),]
 
 ovata.bb<-stan.bb%>%filter(Species=="ovata")%>%arrange(ID, year)
 ovata.bb$ID.year<-paste(ovata.bb$ID, ovata.bb$year)
@@ -228,7 +282,7 @@ ov.frz$frz <- ave(
   ov.frz$frz, ov.frz$year, ov.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
-
+ov.frz<-ov.frz[!duplicated(ov.frz),]
 
 grandifolia.bb<-stan.bb%>%filter(Species=="grandifolia")%>%arrange(ID, year)
 grandifolia.bb$ID.year<-paste(grandifolia.bb$ID, grandifolia.bb$year)
@@ -252,6 +306,7 @@ gr.frz$frz <- ave(
   gr.frz$frz, gr.frz$year, gr.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+gr.frz<-gr.frz[!duplicated(gr.frz),]
 
 deltoides.bb<-stan.bb%>%filter(Species=="deltoides")%>%arrange(ID, year)
 deltoides.bb$ID.year<-paste(deltoides.bb$ID, deltoides.bb$year)
@@ -275,6 +330,7 @@ de.frz$frz <- ave(
   de.frz$frz, de.frz$year, de.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+de.frz<-de.frz[!duplicated(de.frz),]
 
 rubra.bb<-stan.bb%>%filter(Species=="rubra")%>%arrange(ID, year)
 rubra.bb$ID.year<-paste(rubra.bb$ID, rubra.bb$year)
@@ -298,6 +354,7 @@ ru.frz$frz <- ave(
   ru.frz$frz, ru.frz$year, ru.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+ru.frz<-ru.frz[!duplicated(ru.frz),]
 
 americana.bb<-stan.bb%>%filter(Species=="americana")%>%arrange(ID, year)
 americana.bb$ID.year<-paste(americana.bb$ID, americana.bb$year)
@@ -321,6 +378,7 @@ am.frz$frz <- ave(
   am.frz$frz, am.frz$year, am.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+am.frz<-am.frz[!duplicated(am.frz),]
 
 alba.bb<-stan.bb%>%filter(Species=="alba")%>%arrange(ID, year)
 alba.bb$ID.year<-paste(alba.bb$ID, alba.bb$year)
@@ -344,6 +402,7 @@ alb.frz$frz <- ave(
   alb.frz$frz, alb.frz$year, alb.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+alb.frz<-alb.frz[!duplicated(alb.frz),]
 
 saccharum.bb<-stan.bb%>%filter(Species=="saccharum")%>%arrange(ID, year)
 saccharum.bb$ID.year<-paste(saccharum.bb$ID, saccharum.bb$year)
@@ -367,6 +426,7 @@ sa.frz$frz <- ave(
   sa.frz$frz, sa.frz$year, sa.frz$ID,
   FUN=function(x) cumsum(c(0, head(x, -1)))
 )
+sa.frz<-sa.frz[!duplicated(sa.frz),]
 
 stan.bb<-ungroup(stan.bb)
 bb.frz<-stan.bb%>%dplyr::select(Genus, Species, phase, year, doy, photo, lat, elev)
@@ -390,7 +450,11 @@ rm("al.frz", "alb.frz", "alba", "alba.bb", "alleghaniensis", "alleghaniensis.bb"
    "grandifolia", "grandifolia.bb", "ni.frz", "nigra", "nigra.bb", "ov.frz", "ovata", "ovata.bb", "ru.frz", "rubra", "rubra.bb",
    "sa.frz", "saccharum", "saccharum.bb")
 
-cc.frz<-dplyr::select(stan.cc, solr, windsp, aprecip, tmean, tmin, tmax, year, doy, dewpt, gdd)
+cc.frz<-dplyr::select(stan.cc, solr, windsp, aprecip, tmean, tmin, tmax, year, doy, dewpt, gdd, chill, chill.day, frost)
+#chill.tree<-full_join(bb.frz, cc.frz)
+
+
+
 tree<-inner_join(bb.frz, cc.frz)
 tree<-tree%>%dplyr::select(-ID.year)
 
@@ -409,97 +473,119 @@ tree$tmean<-as.numeric(tree$tmean)
 tree$dewpt<-as.numeric(tree$dewpt)
 tree$aprecip<-as.numeric(tree$aprecip)
 tree$frz<-as.numeric(tree$frz)
+tree<-tree%>%rename(false.spring=frz)
 tree$gdd<-as.numeric(tree$gdd)
+tree$chill<-as.numeric(tree$chill)
+tree$frost<-as.numeric(tree$frost)
+
+tree$doy<-ave(tree$doy, tree$ID, tree$year, tree$phase, FUN=first)
+
+tree$solr<-ave(tree$solr, tree$doy, tree$year, tree$phase)
+#tree$aprecip<-ave(tree$aprecip, tree$ID, tree$year, tree$phase, FUN=last)
+#tree$gdd<-ave(tree$gdd, tree$ID, tree$year, tree$phase, FUN=last)
+#tree$photo<-ave(tree$photo, tree$ID, tree$year, tree$phase, FUN=last)
+#tree$tmin<-ave(tree$tmin, tree$doy, tree$year, tree$phase)
+#tree$tmean<-ave(tree$tmean, tree$doy, tree$year, tree$phase)
+#tree$tmax<-ave(tree$tmax, tree$doy, tree$year, tree$phase)
+tree$tdiff<-tree$tmax-tree$tmin
+tree$windsp<-ave(tree$windsp, tree$ID, tree$year, tree$phase, FUN=last)
+
+#tree$dewpt<-ave(tree$dewpt, tree$ID, tree$year, tree$phase)
+tree$lat<-ave(tree$lat, tree$ID)
+tree$elev<-ave(tree$elev, tree$ID)
+tree$false.spring<-ave(tree$false.spring, tree$ID, tree$year, tree$phase, FUN=last)
+
+tree<-tree[!duplicated(tree),]
 
 write.csv(tree, file="~/Documents/git/treespotters/analysis/output/tree_rf_data.csv", row.names = FALSE)
 
 ##### BUDBURST! #######
 tree.bb<-subset(tree, phase=="budburst")
 tree.bb<-dplyr::select(tree.bb, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, frz, gdd)
+                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.bb<-tree.bb[!duplicated(tree.bb),]
 
 
 bb<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                   tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.bb)
+                   tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.bb)
 bb.rf<-varImpPlot(bb)
 
 
 ###### LEAFOUT! #########
 tree.lo<-subset(tree, phase=="leafout")
 tree.lo<-dplyr::select(tree.lo, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, frz, gdd)
+                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.lo<-tree.lo[!duplicated(tree.lo),]
 
 
 lo<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                   tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.lo)
+                   tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.lo)
 lo.rf<-varImpPlot(lo)
 
 ###### FLOWERS! #########
 tree.flo<-subset(tree, phase=="flowers")
 tree.flo<-dplyr::select(tree.flo, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                        tmax, tmean, dewpt, aprecip, frz, gdd)
+                        tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.flo<-tree.flo[!duplicated(tree.flo),]
 
 
 flowers<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                        tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.flo)
+                        tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.flo)
 flo.rf<-varImpPlot(flowers)
 
 ###### Fruits! #########
 tree.fr<-subset(tree, phase=="Fruits")
 tree.fr<-dplyr::select(tree.fr, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, frz, gdd)
+                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.fr<-tree.fr[!duplicated(tree.fr),]
 
 
 fruits<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                       tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.fr)
+                       tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.fr)
 fruits.rf<-varImpPlot(fruits)
 
 ###### Colored Leaves! #########
 tree.cl<-subset(tree, phase=="Colored leaves")
 tree.cl<-dplyr::select(tree.cl, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, frz, gdd)
+                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.cl<-tree.cl[!duplicated(tree.cl),]
 
 
 cl.leaves<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                          tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.cl)
+                          tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.cl)
 clleaves.rf<-varImpPlot(cl.leaves)
 
 ###### Leaf Drop! #########
 tree.dr<-subset(tree, phase=="leaf drop")
 tree.dr<-dplyr::select(tree.dr, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, frz, gdd)
+                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.dr<-tree.dr[!duplicated(tree.dr),]
 
 
 lf.drop<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                        tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.dr)
+                        tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.dr)
 lfdrop.rf<-varImpPlot(lf.drop)
 
 ###### Ripe Fruit! #########
 tree.ri<-subset(tree, phase=="Ripe fruits")
 tree.ri<-dplyr::select(tree.ri, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, frz, gdd)
+                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.ri<-tree.ri[!duplicated(tree.ri),]
 
 
 ripe<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                     tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.ri)
+                     tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.ri)
 ripe.rf<-varImpPlot(ripe)
 
 ###### Pollen! #########
 tree.po<-subset(tree, phase=="Pollen release (flowers)")
 tree.po<-dplyr::select(tree.po, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, frz, gdd)
+                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.po<-tree.po[!duplicated(tree.po),]
 
 
 pollen<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                       tmax + tmean + dewpt + aprecip + frz + gdd, data=tree.po)
+                       tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.po)
 pollen.rf<-varImpPlot(pollen)
 
 quartz()
