@@ -82,13 +82,14 @@ dvr$hys<-ifelse(dvr$lo<=dvr$flo, "pro", "hys")
 #fit1<-stan_glm(risk~bb+as.factor(year), data=dvr)
 #fit1
 
-cols <- colorRampPalette(brewer.pal(8,"Spectral"))(3)
+cols <- colorRampPalette(brewer.pal(3,"Set1"))(3)
 
 #dvr<-dvr[!(dvr$species=="Fagus grandifolia" & dvr$year==2018)]
-dvr$species<-reorder(dvr$species, dvr$risk)
+dvr$code<-reorder(dvr$species, dvr$risk)
 
-frost<- ggplot(dvr, aes(x=species, y=risk)) + geom_point(aes(color=as.factor(year))) + ylab("Frost Risk") +
-  xlab("Species") + geom_line(aes(x=species, y=risk, color=as.factor(year), group=as.factor(year))) +
+quartz()
+frost<- ggplot(dvr, aes(x=code, y=risk)) + geom_point(aes(color=as.factor(year))) + ylab("Frost Risk") +
+  xlab("Species") + geom_line(aes(x=code, y=risk, color=as.factor(year), group=as.factor(year))) +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title.x=element_blank(),
         axis.text.x = element_text(face = "italic", angle=45, hjust=1),
         axis.text=element_text(size=10), legend.key = element_rect(fill = "transparent"),
@@ -103,49 +104,97 @@ xx<-subset(dx.r, pheno=="Breaking leaf buds")
 xx$bb.yr<-ave(xx$mean, xx$year)
 xx<-dplyr::select(xx, bb.yr, year)
 xx<-xx[!duplicated(xx),]
-#dx.r<-inner_join(dx.r, xx)
+dx.r<-inner_join(dx.r, xx)
 
 ####### Stop here Jun 19, 2018 - issues with mapping budburst date #########
-
-ggplot(dx.r, aes(x=species, y=mean)) + geom_point(aes(color=pheno)) + facet_wrap(~year) +
-  geom_line() + coord_flip() + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title.x=element_blank(),
+dx.r$code<-reorder(dx.r$species, dx.r$mean)
+dvr2<-ggplot(dx.r, aes(x=code, y=mean)) + geom_point(aes(color=pheno)) +
+  geom_line() + coord_flip() + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
                                                                             axis.text.y = element_text(face = "italic"),
-                                                                            axis.text=element_text(size=10), legend.key = element_rect(fill = "transparent"),
+                                                                            axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
                                                                             legend.box.background = element_rect(),
-                                                                            panel.spacing = unit(2, "lines")) + labs(col="Phenophase") + geom_vline(aes(xintercept = bb.yr), xx, color="green")
-
-
-sixteen<-subset(dx.r, dx.r$year==2016)
-six<-ggplot(sixteen, aes(x=species, y=mean)) + geom_point(aes(color=pheno)) +
-  geom_line() + coord_flip() + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title.x=element_blank(),
-                                                                            axis.text.y = element_text(face = "italic"),
-                                                                            axis.text=element_text(size=10), legend.position = "none")
-seventeen<-subset(dx.r, dx.r$year==2017)
-seven<-ggplot(seventeen, aes(x=species, y=mean)) + geom_point(aes(color=pheno)) +
-  geom_line() + coord_flip() + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title.x=element_blank(),
-                                                                            axis.text.y = element_text(face = "italic"),
-                                                                            axis.text=element_text(size=10), legend.position="none")
-eighteen<-subset(dx.r, dx.r$year==2018)
-eight<-ggplot(eighteen, aes(x=species, y=mean)) + geom_point(aes(color=pheno)) +
-  geom_line() + coord_flip() + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.title.x=element_blank(),
-                                                                            axis.text.y = element_text(face = "italic"),
-                                                                            axis.text=element_text(size=10), legend.key = element_rect(fill = "transparent"),
-                                                                            legend.box.background = element_rect()) + labs(col="Phenophase")
-ggarrange(six, seven, eight, ncol=3, nrow=1)
+                                                                            panel.spacing = unit(2, "lines"),
+                                                                            strip.background = element_rect(fill="transparent"),
+                                                                            strip.text = element_text(size=14)) + labs(col="Phenophase") + 
+  facet_wrap(~year) + geom_hline(aes(yintercept=bb.yr), xx, col="forestgreen", linetype="dashed")
 
 
 dx.h<-filter(dx, pheno!="Breaking leaf buds")
-ggplot(dx.h, aes(x=species, y=mean)) + geom_point(aes(color=pheno)) + facet_wrap(~as.factor(year)) + 
-  coord_flip() + ylab("Day of Year") + xlab("Species")
+hys<-dplyr::select(dvr, species, year, hys)
+dx.h<-inner_join(dx.h, hys)
+dx.h<-dx.h[!(dx.h$species=="Fagus grandifolia" & dx.h$year==2018),]
 
-df<-dplyr::select(d, ObservedBy_Person_ID, First_Yes_Year)
-df<-filter(df, First_Yes_Year>2016)
-dx<-df %>% 
+colors<-colorRampPalette(brewer.pal(8,"Spectral"))(2)
+ggplot(dx.h, aes(x=species, y=mean)) + geom_point(aes(col=hys)) + geom_line(aes(col=hys)) +
+  coord_flip() + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                                                              axis.text.y = element_text(face = "italic"),
+                                                              axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
+                                                              legend.box.background = element_rect(),
+                                                              panel.spacing = unit(2, "lines"),
+                                                              strip.background = element_rect(fill="transparent"),
+                                                              strip.text = element_text(size=14)) + labs(col="Phenophase") + 
+  facet_wrap(~year) + geom_hline(aes(yintercept=bb.yr), xx, col="forestgreen", linetype="dashed") + scale_color_manual(values=colors, 
+                                                                                                                     labels=c(hys="Hysteranthy",
+                                                                                                                              pro="Proteranthy"),
+                                                                                                                     name="")
+
+df<-dplyr::select(b, ObservedBy_Person_ID, First_Yes_Year)
+df[] <- lapply(df, gsub, pattern="'", replacement="")
+df<-filter(df, First_Yes_Year==2016)
+dsix<-df %>% 
   mutate(ObservedBy_Person_ID = strsplit(as.character(ObservedBy_Person_ID), ",")) %>% 
   unnest(ObservedBy_Person_ID)
 
 
-dx<-dx[!duplicated(dx),]
-length(unique(dx$ObservedBy_Person_ID))
-                 #[1] 73
+dsix<-dsix[!duplicated(dsix),]
+length(unique(dsix$ObservedBy_Person_ID))
+                    # 62 = 2016
+
+df<-dplyr::select(b, ObservedBy_Person_ID, First_Yes_Year)
+df[] <- lapply(df, gsub, pattern="'", replacement="")
+df<-filter(df, First_Yes_Year==2017)
+dseven<-df %>% 
+  mutate(ObservedBy_Person_ID = strsplit(as.character(ObservedBy_Person_ID), ",")) %>% 
+  unnest(ObservedBy_Person_ID)
+
+
+dseven<-dseven[!duplicated(dseven),]
+length(unique(dseven$ObservedBy_Person_ID))
+                  # 74 = 2017
+
+
+df<-dplyr::select(b, ObservedBy_Person_ID, First_Yes_Year)
+df[] <- lapply(df, gsub, pattern="'", replacement="")
+df<-filter(df, First_Yes_Year==2018)
+deight<-df %>% 
+  mutate(ObservedBy_Person_ID = strsplit(as.character(ObservedBy_Person_ID), ",")) %>% 
+  unnest(ObservedBy_Person_ID)
+
+
+deight<-deight[!duplicated(deight),]
+length(unique(deight$ObservedBy_Person_ID))
+                # 58 = 2016
+
+
+obs<-full_join(dsix, dseven)
+obs<-full_join(obs, deight)
+obs<-obs[!duplicated(obs),]
+
+tt<-as.data.frame(table(obs$First_Yes_Year, obs$ObservedBy_Person_ID))
+tt$years<-ave(
+  tt$Freq, tt$Var2, 
+  FUN=function(x) cumsum(c(1, head(x, -1)))
+)
+
+t18<-subset(tt, Var1==2018)
+t18<-t18[(t18$Freq>0),]
+table(t18$years)
+
+
+
+
+
+
+
+
 
