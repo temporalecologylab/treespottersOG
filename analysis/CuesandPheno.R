@@ -36,19 +36,18 @@ bb<-bb%>%
   rename(month=First_Yes_Month)%>%
   rename(day=First_Yes_Day)%>%
   rename(doy=First_Yes_DOY)%>%
-  rename(numYs=NumYs_in_Series)%>%
-  rename(photo=Daylength)%>%
+  rename(numYs=Multiple_Observers)%>%
+  rename(photo=Daylength) %>%
   rename(phase=Phenophase_Description)%>%
-  rename(ID=Individual_ID)%>%
-  rename(aprecip=Accum_Prcp)
-bb.pheno<-dplyr::select(bb, Genus, Species, Common_Name, phase, lat, long, elev, year, doy, numYs,aprecip , photo, ID)
+  rename(ID=Individual_ID)
+bb.pheno<-dplyr::select(bb, Genus, Species, Common_Name, phase, lat, long, elev, year, doy, numYs, photo, ID)
 bb.pheno$phase<-ifelse(bb.pheno$phase=="Breaking leaf buds", "budburst", bb.pheno$phase)
 bb.pheno$phase<-ifelse(bb.pheno$phase=="Leaves", "leafout", bb.pheno$phase)
 bb.pheno$phase<-ifelse(bb.pheno$phase=="Flowers or flower buds", "flowers", bb.pheno$phase)
 bb.pheno$phase<-ifelse(bb.pheno$phase=="Falling leaves", "leaf drop", bb.pheno$phase)
 
 ### Now work on finding day of budburst, etc.
-bb.pheno<-filter(bb.pheno, numYs>2)
+bb.pheno<-filter(bb.pheno, numYs>0)
 stan.bb<-bb.pheno%>% 
   group_by(ID, phase, year) %>% 
   slice(which.min(doy))
@@ -68,7 +67,7 @@ cc<-read.csv("input/weldhill.csv", header=TRUE)
 cc<-cc%>%
   rename(date.time=Eastern.daylight.time)
 cc$date<-gsub("\\s* .*$", '', cc$date.time)
-cc$date<- as.Date(cc$date, "%m/%d/%y")
+cc$date<- as.Date(cc$date, "%m/%d/%Y")
 cc$year<-substr(cc$date, 0, 4)
 cc$doy<-yday(cc$date)
 cc$hour<-gsub("^.* \\s*|\\s*:.*$", '', cc$date.time)
@@ -501,91 +500,95 @@ write.csv(tree, file="~/Documents/git/treespotters/analysis/output/tree_rf_data.
 
 ##### BUDBURST! #######
 tree.bb<-subset(tree, phase=="budburst")
-tree.bb<-dplyr::select(tree.bb, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.bb<-dplyr::select(tree.bb, doy, spp, year, photo, windsp, tmin,
+                       tmax, tmean,  aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.bb<-tree.bb[!duplicated(tree.bb),]
 
 
-bb<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                   tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.bb)
+bb<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                   tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.bb)
 bb.rf<-varImpPlot(bb)
 
 
 ###### LEAFOUT! #########
 tree.lo<-subset(tree, phase=="leafout")
-tree.lo<-dplyr::select(tree.lo, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.lo<-dplyr::select(tree.lo, doy, spp, year, photo, windsp, tmin,
+                           tmax, tmean,  aprecip, false.spring, gdd, chill, tdiff, frost)
+#tree.lo<-dplyr::select(tree.lo, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
+ #                      tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.lo<-tree.lo[!duplicated(tree.lo),]
 
+lo<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                  tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.lo)
 
-lo<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                   tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.lo)
+#lo<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
+ #                  tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.lo)
 lo.rf<-varImpPlot(lo)
 
 ###### FLOWERS! #########
 tree.flo<-subset(tree, phase=="flowers")
-tree.flo<-dplyr::select(tree.flo, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                        tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.flo<-dplyr::select(tree.flo, doy, spp, year, photo, windsp, tmin,
+                        tmax, tmean, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.flo<-tree.flo[!duplicated(tree.flo),]
 
 
-flowers<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                        tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.flo)
+flowers<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                        tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.flo)
 flo.rf<-varImpPlot(flowers)
 
 ###### Fruits! #########
 tree.fr<-subset(tree, phase=="Fruits")
-tree.fr<-dplyr::select(tree.fr, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.fr<-dplyr::select(tree.fr, doy, spp, year, photo, windsp, tmin,
+                       tmax, tmean, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.fr<-tree.fr[!duplicated(tree.fr),]
 
 
-fruits<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                       tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.fr)
+fruits<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                       tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.fr)
 fruits.rf<-varImpPlot(fruits)
 
 ###### Colored Leaves! #########
 tree.cl<-subset(tree, phase=="Colored leaves")
-tree.cl<-dplyr::select(tree.cl, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.cl<-dplyr::select(tree.cl, doy, spp, year, photo, windsp, tmin,
+                       tmax, tmean, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.cl<-tree.cl[!duplicated(tree.cl),]
 
 
-cl.leaves<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                          tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.cl)
+cl.leaves<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                          tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.cl)
 clleaves.rf<-varImpPlot(cl.leaves)
 
 ###### Leaf Drop! #########
 tree.dr<-subset(tree, phase=="leaf drop")
-tree.dr<-dplyr::select(tree.dr, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.dr<-dplyr::select(tree.dr, doy, spp, year, photo, windsp, tmin,
+                       tmax, tmean, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.dr<-tree.dr[!duplicated(tree.dr),]
 
 
-lf.drop<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                        tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.dr)
+lf.drop<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                        tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.dr)
 lfdrop.rf<-varImpPlot(lf.drop)
 
 ###### Ripe Fruit! #########
 tree.ri<-subset(tree, phase=="Ripe fruits")
-tree.ri<-dplyr::select(tree.ri, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.ri<-dplyr::select(tree.ri, doy, spp, year, photo, windsp, tmin,
+                       tmax, tmean, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.ri<-tree.ri[!duplicated(tree.ri),]
 
 
-ripe<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                     tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.ri)
+ripe<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                     tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.ri)
 ripe.rf<-varImpPlot(ripe)
 
 ###### Pollen! #########
 tree.po<-subset(tree, phase=="Pollen release (flowers)")
-tree.po<-dplyr::select(tree.po, doy, spp, lat, elev, year, photo, solr, windsp, tmin,
-                       tmax, tmean, dewpt, aprecip, false.spring, gdd, chill, tdiff, frost)
+tree.po<-dplyr::select(tree.po, doy, spp, year, photo, windsp, tmin,
+                       tmax, tmean, aprecip, false.spring, gdd, chill, tdiff, frost)
 tree.po<-tree.po[!duplicated(tree.po),]
 
 
-pollen<-randomForest(doy ~ spp + lat + elev + year + photo + solr + windsp + tmin +
-                       tmax + tmean + dewpt + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.po)
+pollen<-randomForest(doy ~ spp + year + photo + windsp + tmin +
+                       tmax + tmean + aprecip + false.spring + gdd + chill + tdiff + frost, data=tree.po)
 pollen.rf<-varImpPlot(pollen)
 
 quartz()
