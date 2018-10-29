@@ -17,6 +17,13 @@ setwd("~/Documents/git/treespotters/analysis")
 
 ## Data!
 d<-read.csv("output/tree_rf_data.csv", header=TRUE)
+id<-read.csv("input/IDinfo.csv", header=TRUE)
+
+## ID info to find provenance
+id<-subset(id, select=c("Individual_ID", "Plant_Nickname"))
+id<-id[!duplicated(id),]
+write.csv(id, file="output/provenanceinfo.csv", row.names = FALSE)
+
 
 ## Budburst
 bb<-subset(d, phase=="budburst")
