@@ -29,15 +29,45 @@ write.csv(id, file="output/provenanceinfo.csv", row.names = FALSE)
 bb<-subset(d, phase=="budburst")
 bb<-dplyr::select(bb, doy, spp, photo, gdd, ID, year, aprecip, solr, chill, false.spring, tdiff, tmean, tmax, tmin, frost)
 
-bb$cgdd<-bb$gdd/20
-bb$cprecip<-bb$aprecip/20
-bb$cchill<-bb$chill/50
-bb$cfrz<-bb$frz/20
-bb$csolr<-bb$solr/20
-bb$cyear<-as.numeric(substr(bb$year, 3,4))
+bb$photo.z <- (bb$photo-mean(bb$photo,na.rm=TRUE))/(2*sd(bb$photo,na.rm=TRUE))
+bb$force.z <- (bb$gdd-mean(bb$gdd,na.rm=TRUE))/(2*sd(bb$gdd,na.rm=TRUE))
+bb$chill.z <- (bb$chill-mean(bb$chill,na.rm=TRUE))/(2*sd(bb$chill,na.rm=TRUE))
 
-bb.stan<-stan_glmer(doy~photo+cgdd+cprecip+cchill+
-                    (1|spp), data=bb)
+bb.stan<-stan_glmer(doy~photo.z+force.z+chill.z + photo.z:force.z + photo.z:chill.z + force.z:chill.z +
+                    (photo.z+force.z+chill.z|spp), data=bb)
+
+
+df<-d[(d$phase=="budburst"|d$phase=="leafout"),]
+df$bb<-NA
+df$bb<-ifelse(df$phase=="budburst", df$bb=df$doy, df$bb)
+df$lo<-NA
+df$lo<-ifelse(df$phase=="leafout", df$lo=df$doy, df$lo)
+df<-dplyr::select(df, bb, year, PEP_ID, lat, long, lo)
+df$pep.year<-paste(df$year, df$PEP_ID)
+
+dxx<-data_frame()
+days.btw<-array()
+for(i in length(df$pep.year)){
+  days.btw[i] <- Map(seq, df$bb[i], df$lo[i], by = 1)
+  dxx <- data.frame(PEP_ID=df$PEP_ID, year=df$year, lat=df$lat, long=df$long,
+                    pep.year = rep.int(df$pep.year, vapply(days.btw[i], length, 1L)), 
+                    doy = do.call(c, days.btw[i]))
+}
+
+dxx<-dxx[!duplicated(dxx),]
+dxx<-dplyr::select(dxx, -pep.year)
+x<-paste(dxx$year, dxx$doy)
+dxx$date<-as.Date(strptime(x, format="%Y %j"))
+dxx$Date<- as.character(dxx$date)
+
+
+
+
+
+
+
+
+
 
 #bb.stan<-stan_glmer(doy~solr+tmean+tmin+tmax+year+(1|spp), data=bb)
 
