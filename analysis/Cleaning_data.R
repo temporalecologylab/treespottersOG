@@ -1,7 +1,7 @@
 ### 19 April 2019 - by Cat ###
 ## Let's play around with some Tree Spotters data!
 ## Find Provenance Lat info and Age!
-## Updated 9 May 2018 with new TS data & Climate data
+## Updated 19 Nov 2018 with new TS data & Climate data
 ### Weather data downloaded from... http://labs.arboretum.harvard.edu/weather/
 
 # ## housekeeping
@@ -39,7 +39,7 @@ bb<-bb%>%
   rename(photo=Daylength) %>%
   rename(phase=Phenophase_Description)%>%
   rename(ID=Individual_ID)
-bb.pheno<-dplyr::select(bb, Genus, Species, Common_Name, phase, lat, long, elev, year, doy, numYs, photo, ID)
+bb.pheno<-dplyr::select(bb, Genus, Species, Common_Name, phase, lat, long, elev, year, doy, numYs, photo, ID, AGDD)
 bb.pheno$phase<-ifelse(bb.pheno$phase=="Breaking leaf buds", "budburst", bb.pheno$phase)
 bb.pheno$phase<-ifelse(bb.pheno$phase=="Leaves", "leafout", bb.pheno$phase)
 bb.pheno$phase<-ifelse(bb.pheno$phase=="Flowers or flower buds", "flowers", bb.pheno$phase)
@@ -67,6 +67,7 @@ cc<-cc%>%
   rename(date.time=Eastern.daylight.time)
 cc$date<-gsub("\\s* .*$", '', cc$date.time)
 cc$date<- as.Date(cc$date, "%m/%d/%Y")
+cc$date<-gsub("001", "201", cc$date)
 cc$year<-substr(cc$date, 0, 4)
 cc$doy<-yday(cc$date)
 cc$hour<-gsub("^.* \\s*|\\s*:.*$", '', cc$date.time)
@@ -85,6 +86,100 @@ cc$tchill<-fahrenheit.to.celsius(cc$tchill)
 cc$Rain.in<-ave(cc$Rain.in, cc$date, FUN=sum)
 cc$precip<-conv_unit(cc$Rain.in, "inch", "mm")
 
+cc$year<-as.integer(cc$year)
+
+cc<-dplyr::select(cc, -hour)
+cc<-cc[!duplicated(cc),]
+#bbx<-left_join(bb, cc)
+
+#### Now start building a small data frame with phenophase info then add in forcing, chilling and photo
+colstokeep<-c("Genus", "Species", "ID","year", "phase","lat", "long", "elev", "doy")
+bbx<-subset(stan.bb, select=colstokeep)
+bbx<-bbx[!duplicated(bbx),]
+
+bbx<-bbx%>%tidyr::spread(phase, doy)
+bbx$budburst<-ave(bbx$budburst, bbx$ID, bbx$year, FUN=first)
+bbx$leafout<-ave(bbx$leafout, bbx$ID, bbx$year, FUN=first)
+bbx$flowers<-ave(bbx$flowers, bbx$ID, bbx$year, FUN=first)
+bbx$fruits<-ave(bbx$Fruits, bbx$ID, bbx$year, FUN=first)
+bbx$col.leaves<-ave(bbx$`Colored leaves`, bbx$ID, bbx$year, FUN=first)
+bbx$leafdrop<-ave(bbx$`leaf drop`, bbx$ID, bbx$year, FUN=first)
+bbx$last.obs<-ave(bbx$`leaf drop`, bbx$ID, bbx$year, FUN=first)
+
+
+bbx$gdd.start<-46 # 15 February for each year - arbitrary, can change
+### How do I want to calculate dvr? Chilling should be the same, diff photo for leafout and forcing between bb and lo or agdd until bb and then till lo?
+
+bb.start<-bbx[!is.na(bbx$budburst),]
+bb.start<-bb.start[!is.na(bb.start$leafout),]
+#bb.start<-bb.start[!is.na(bb.start$flowers),]
+#bb.start<-bb.start[!is.na(bb.start$leafdrop),]
+#bb.start<-bb.start[!is.na(bb.start$fruits),]
+
+bb.start$id_year<-paste(bb.start$ID, bb.start$year)
+
+dxx<-data_frame()
+days.btw<-array()
+for(i in length(bb.start$id_year)){
+  days.btw[i] <- Map(seq, bb.start$gdd.start[i], bb.start$budburst[i], by = 1)
+  dxx <- data.frame(ID=bb.start$ID, year=bb.start$year, Genus=bb.start$Genus, Species=bb.start$Species, 
+                    lat=bb.start$lat, long=bb.start$long, elev=bb.start$elev,
+                    id_year = rep.int(bb.start$id_year, vapply(days.btw[i], length, 1L)), 
+                    doy = do.call(c, days.btw[i]))
+}
+
+dxx<-dxx[!duplicated(dxx),]
+dxx<-dplyr::select(dxx, -id_year)
+dxx$budburst<-ave(dxx$doy, dxx$ID, dxx$year, FUN=max)
+
+dxx$gdd.start<-ave(dxx$doy, dxx$ID, dxx$year, FUN=min)
+
+cc<-dplyr::select(cc, year, doy, tmean, precip)
+
+dxx<-inner_join(dxx, cc)
+dxx<-dxx[!duplicated(dxx),]
+
+dxx$force<-NA
+dxx$force<-ifelse(dxx$doy>=dxx$gdd.start & dxx$doy<=dxx$budburst, ave(dxx$tmean, dxx$ID, dxx$year), dxx$force)
+dxx$gdd<-ifelse(dxx$tmean>0, dxx$tmean, 0)
+dxx$gdd<-ave(dxx$gdd, dxx$ID, dxx$year, FUN=sum)
+
+pb<-txtProgressBar(min=1, max=nrow(bb.start), style=3)
+bb.start$agdd<-NA
+for(i in c(1:nrow(bb.start))){
+  for(j in c(1:nrow(cc))) {
+  vector<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$budburst[i] & cc$doy[j]>=bb.start$gdd.start[i], cc$tmean[j], 0)
+  bb.start$agdd[i]<-sum(vector)
+  setTxtProgressBar(pb, i)
+  }
+}
+
+bb.start$force<-NA
+for(i in c(1:nrow(bb.start))){
+  for(j in c(1:nrow(cc))) {
+    bb.start$force[i]<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$budburst[i] & cc$doy[j]>=bb.start$gdd.start[i], ave(cc$tmean), bb.start$force)
+    setTxtProgressBar(pb, i)
+  }
+}
+
+bb.start$achill<-NA
+for(i in c(1:nrow(bb.start))){
+  for(j in c(1:nrow(cc))) {
+    v<-ifelse(bb.start$year[i]==cc$year[j]+1 & cc$doy[j]>=bb.start$last.obs[i] & ccx$tchill[j]>=0 &ccx$tchill[j]<=5, cc$tchill[j], 0)
+    v2<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$gdd.start[i] & ccx$tchill[j]>=0 &ccx$tchill[j]<=5, cc$tchill[j], 0)
+    vector<-v+v2
+    bb.start$achill[i]<-sum(vector)
+  }
+}
+
+bb.start$chill<-NA
+for(i in c(1:nrow(bb.start))){
+  for(j in c(1:nrow(cc))) {
+    v<-ifelse(bb.start$year[i]==cc$year[j]+1 & cc$doy[j]>=bb.start$last.obs[i], ave(cc$tchill[j]), bb.start$chill)
+    v2<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$gdd.start[i], ave(cc$tchill[j]), bb.start$chill)
+    bb.start$chill[i]<- (v + v2)/2
+  }
+}
 
 
 
