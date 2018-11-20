@@ -4,6 +4,8 @@
 ## Updated 19 Nov 2018 with new TS data & Climate data
 ### Weather data downloaded from... http://labs.arboretum.harvard.edu/weather/
 
+## NOTE! 20 November 2018 - need to make sure the data is cleaning
+
 # ## housekeeping
 rm(list=ls()) 
 options(stringsAsFactors = FALSE)
@@ -52,10 +54,10 @@ stan.bb<-bb.pheno%>%
   slice(which.min(doy))
 stan.bb$m.doy<-ave(stan.bb$doy, stan.bb$phase, stan.bb$Genus, stan.bb$year)
 stan.bb<-stan.bb[!duplicated(stan.bb),]
-stan.bb$photo<-stan.bb$photo/3600
-x<-paste(stan.bb$year, stan.bb$doy)
-stan.bb$date<-as.Date(strptime(x, format="%Y %j"))
-stan.bb$photo<-ifelse(stan.bb$year==2018, daylength(stan.bb$lat, stan.bb$date), stan.bb$photo)
+#stan.bb$photo<-stan.bb$photo/3600
+#x<-paste(stan.bb$year, stan.bb$doy)
+#stan.bb$date<-as.Date(strptime(x, format="%Y %j"))
+stan.bb$photo<-as.numeric(geosphere::daylength(stan.bb$lat, stan.bb$doy))
 
 ### Clean observation error!
 stan.bb$doy<-ifelse(stan.bb$Species=="alleghaniensis"&stan.bb$year==2016&stan.bb$doy==59, NA, stan.bb$doy)
@@ -104,83 +106,129 @@ bbx$flowers<-ave(bbx$flowers, bbx$ID, bbx$year, FUN=first)
 bbx$fruits<-ave(bbx$Fruits, bbx$ID, bbx$year, FUN=first)
 bbx$col.leaves<-ave(bbx$`Colored leaves`, bbx$ID, bbx$year, FUN=first)
 bbx$leafdrop<-ave(bbx$`leaf drop`, bbx$ID, bbx$year, FUN=first)
-bbx$last.obs<-ave(bbx$`leaf drop`, bbx$ID, bbx$year, FUN=first)
+bbx$last.obs<-ave(bbx$`leaf drop`, bbx$ID, bbx$year, FUN=last)
+bbx$last.obs<-ifelse(is.na(bbx$last.obs), ave(bbx$col.leaves, bbx$ID, bbx$year, FUN=last), bbx$last.obs)
 
 
 bbx$gdd.start<-46 # 15 February for each year - arbitrary, can change
 ### How do I want to calculate dvr? Chilling should be the same, diff photo for leafout and forcing between bb and lo or agdd until bb and then till lo?
 
-bb.start<-bbx[!is.na(bbx$budburst),]
-bb.start<-bb.start[!is.na(bb.start$leafout),]
+dxx<-bbx[!is.na(bbx$budburst),]
+dxx<-dxx[!is.na(dxx$leafout),]
+dxx<-dxx[!is.na(dxx$last.obs),]
 #bb.start<-bb.start[!is.na(bb.start$flowers),]
 #bb.start<-bb.start[!is.na(bb.start$leafdrop),]
 #bb.start<-bb.start[!is.na(bb.start$fruits),]
 
-bb.start$id_year<-paste(bb.start$ID, bb.start$year)
+dxx$id_year<-paste(dxx$ID, dxx$year)
 
-dxx<-data_frame()
+force<-data_frame()
 days.btw<-array()
-for(i in length(bb.start$id_year)){
-  days.btw[i] <- Map(seq, bb.start$gdd.start[i], bb.start$budburst[i], by = 1)
-  dxx <- data.frame(ID=bb.start$ID, year=bb.start$year, Genus=bb.start$Genus, Species=bb.start$Species, 
-                    lat=bb.start$lat, long=bb.start$long, elev=bb.start$elev,
-                    id_year = rep.int(bb.start$id_year, vapply(days.btw[i], length, 1L)), 
-                    doy = do.call(c, days.btw[i]))
-}
 
-dxx<-dxx[!duplicated(dxx),]
-dxx<-dplyr::select(dxx, -id_year)
-dxx$budburst<-ave(dxx$doy, dxx$ID, dxx$year, FUN=max)
+days.btw <- Map(seq, dxx$gdd.start, dxx$leafout, by = 1)
 
-dxx$gdd.start<-ave(dxx$doy, dxx$ID, dxx$year, FUN=min)
+force <- data.frame(id_year = rep.int(dxx$id_year, vapply(days.btw, length, 1L)), 
+                    doy = do.call(c, days.btw))
 
-cc<-dplyr::select(cc, year, doy, tmean, precip)
+force$ID<-as.integer(substr(force$id_year, 0, 6))
+force$year<-as.integer(substr(force$id_year, 7,11))
 
-dxx<-inner_join(dxx, cc)
-dxx<-dxx[!duplicated(dxx),]
+force<-force[!duplicated(force),]
+force<-dplyr::select(force, -id_year)
+force$leafout<-ave(force$doy, force$ID, force$year, FUN=max)
 
-dxx$force<-NA
-dxx$force<-ifelse(dxx$doy>=dxx$gdd.start & dxx$doy<=dxx$budburst, ave(dxx$tmean, dxx$ID, dxx$year), dxx$force)
-dxx$gdd<-ifelse(dxx$tmean>0, dxx$tmean, 0)
-dxx$gdd<-ave(dxx$gdd, dxx$ID, dxx$year, FUN=sum)
-
-pb<-txtProgressBar(min=1, max=nrow(bb.start), style=3)
-bb.start$agdd<-NA
-for(i in c(1:nrow(bb.start))){
-  for(j in c(1:nrow(cc))) {
-  vector<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$budburst[i] & cc$doy[j]>=bb.start$gdd.start[i], cc$tmean[j], 0)
-  bb.start$agdd[i]<-sum(vector)
-  setTxtProgressBar(pb, i)
-  }
-}
-
-bb.start$force<-NA
-for(i in c(1:nrow(bb.start))){
-  for(j in c(1:nrow(cc))) {
-    bb.start$force[i]<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$budburst[i] & cc$doy[j]>=bb.start$gdd.start[i], ave(cc$tmean), bb.start$force)
-    setTxtProgressBar(pb, i)
-  }
-}
-
-bb.start$achill<-NA
-for(i in c(1:nrow(bb.start))){
-  for(j in c(1:nrow(cc))) {
-    v<-ifelse(bb.start$year[i]==cc$year[j]+1 & cc$doy[j]>=bb.start$last.obs[i] & ccx$tchill[j]>=0 &ccx$tchill[j]<=5, cc$tchill[j], 0)
-    v2<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$gdd.start[i] & ccx$tchill[j]>=0 &ccx$tchill[j]<=5, cc$tchill[j], 0)
-    vector<-v+v2
-    bb.start$achill[i]<-sum(vector)
-  }
-}
-
-bb.start$chill<-NA
-for(i in c(1:nrow(bb.start))){
-  for(j in c(1:nrow(cc))) {
-    v<-ifelse(bb.start$year[i]==cc$year[j]+1 & cc$doy[j]>=bb.start$last.obs[i], ave(cc$tchill[j]), bb.start$chill)
-    v2<-ifelse(bb.start$year[i]==cc$year[j] & cc$doy[j]<=bb.start$gdd.start[i], ave(cc$tchill[j]), bb.start$chill)
-    bb.start$chill[i]<- (v + v2)/2
-  }
-}
+force$gdd.start<-ave(force$doy, force$ID, force$year, FUN=min)
 
 
+cc<-dplyr::select(cc, year, doy, tmean)
 
+force<-inner_join(force, cc)
+force<-force[!duplicated(force),]
+
+foober<-dxx%>%dplyr::select(Genus, Species, ID, year, elev, lat, long,budburst)
+force<-full_join(force, foober)
+
+force$tmeanbb<-ifelse(force$doy>=force$gdd.start & force$doy<=force$budburst, force$tmean, force$force)
+force$force<-ave(force$tmeanbb, force$ID, force$year)
+force$tmeanlo<-ifelse(force$doy>=force$gdd.start & force$doy<=force$leafout, force$tmean, force$force)
+force$force.lo<-ave(force$tmeanlo, force$ID, force$year)
+force$gdd.bb<-ifelse(force$doy>=force$gdd.start & force$doy<=force$budburst & force$tmean>0, force$tmean, 0)
+force$gdd.bb<-ave(force$gdd.bb, force$ID, force$year, FUN=sum)
+force$gdd.lo<-ifelse(force$doy>=force$gdd.start & force$doy<=force$leafout & force$tmean>0, force$tmean, 0)
+force$gdd.lo<-ave(force$gdd.lo, force$ID, force$year, FUN=sum)
+
+dxx$yrend<-ifelse(dxx$year==2016, 412, 411)
+
+days.btw <- Map(seq, dxx$last.obs, dxx$yrend, by = 1)
+chilldays <- data.frame(id_year = rep.int(dxx$id_year, vapply(days.btw, length, 1L)), 
+                      doy2 = do.call(c, days.btw))
+
+chilldays$ID<-as.integer(substr(chilldays$id_year, 0, 6))
+chilldays$year<-as.integer(substr(chilldays$id_year, 7,11))
+
+chilldays<-full_join(chilldays, foober)
+
+chilldays$year2<-chilldays$year
+chilldays$doy<-ifelse(chilldays$year==2016 & chilldays$doy2>366, chilldays$doy2-366, chilldays$doy2)
+chilldays$year<-ifelse(chilldays$year==2016 & chilldays$doy2>366, 2017, chilldays$year)
+chilldays$doy<-ifelse(chilldays$year!=2016 & chilldays$doy2>365, chilldays$doy2-365, chilldays$doy2)
+chilldays$year<-ifelse(chilldays$year2!=2016 & chilldays$doy2>365, chilldays$year2 + 1, chilldays$year)
+
+chilldays<-chilldays[!duplicated(chilldays),]
+chilldays<-dplyr::select(chilldays, -id_year)
+
+chilldays$chill.start<-ave(chilldays$doy2, chilldays$ID, chilldays$year, FUN=min)
+chilldays$chill.end<-ave(chilldays$doy2, chilldays$ID, chilldays$year, FUN=max)
+
+cc<-dplyr::select(cc, year, doy, tmean)
+
+chilldays<-inner_join(chilldays, cc)
+chilldays<-chilldays[!duplicated(chilldays),]
+
+
+chilldays$chill<-NA
+chilldays$chill<-ifelse(chilldays$doy2>=chilldays$chill.start, ave(chilldays$tmean, chilldays$ID, chilldays$year), chilldays$chill)
+
+
+chilldays$achill<-ifelse(chilldays$doy2>=chilldays$chill.start & chilldays$doy2<=chilldays$chill.end & chilldays$tmean>=0 & chilldays$tmean<=5, chilldays$tmean, 0)
+chilldays$achill<-ave(chilldays$achill, chilldays$ID, chilldays$year, FUN=sum)
+
+force<-dplyr::select(force, -tmean, -doy, -gdd.start)
+chilldays<-dplyr::select(chilldays, -doy2, -year2, -tmean, -doy, -chill.start, -chill.end)
+tree<-full_join(force, chilldays)
+
+tree<-tree[!duplicated(tree),]
+#tree<-na.omit(tree)
+
+photos<-data_frame()
+days.btw<-array()
+
+days.btw <- Map(seq, dxx$gdd.start, dxx$leafout, by = 1)
+
+photos <- data.frame(id_year = rep.int(dxx$id_year, vapply(days.btw, length, 1L)), 
+                    doy = do.call(c, days.btw))
+
+photos$ID<-as.integer(substr(photos$id_year, 0, 6))
+photos$year<-as.integer(substr(photos$id_year, 7,11))
+
+photos<-full_join(photos, foober)
+
+photos<-photos[!duplicated(photos),]
+photos<-dplyr::select(photos, -id_year)
+photos$leafout<-ave(photos$doy, photos$ID, photos$year, FUN=max)
+
+photos$pho.start<-ave(photos$doy, photos$ID, photos$year, FUN=min)
+goo<-stan.bb%>% ungroup(phase, ID, year) %>%
+  dplyr::select(ID, year, doy, photo)
+photos<-full_join(photos, goo)
+
+photos$m.photo.bb<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$budburst, ave(photos$photo, photos$ID, photos$year), photos$photo)
+photos$m.photo.lo<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$budburst, ave(photos$photo, photos$ID, photos$year), photos$photo)
+photos$photo.bb<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$budburst, ave(photos$photo, photos$ID, photos$year, FUN=sum), photos$photo)
+photos$photo.lo<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$leafout, ave(photos$photo, photos$ID, photos$year, FUN=sum), photos$photo)
+
+
+photos<-photos%>%dplyr::select(-doy, -pho.start)
+tree<-full_join(tree, photos)
+tree<-tree[!duplicated(tree),]
 
