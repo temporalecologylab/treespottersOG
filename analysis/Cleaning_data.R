@@ -109,6 +109,7 @@ bbx$leafdrop<-ave(bbx$`leaf drop`, bbx$ID, bbx$year, FUN=first)
 bbx$last.obs<-ave(bbx$`leaf drop`, bbx$ID, bbx$year, FUN=last)
 bbx$last.obs<-ifelse(is.na(bbx$last.obs), ave(bbx$col.leaves, bbx$ID, bbx$year, FUN=last), bbx$last.obs)
 
+#write.csv(bbx, file="output/clean_alldata.csv", row.names=FALSE)
 
 bbx$gdd.start<-46 # 15 February for each year - arbitrary, can change
 ### How do I want to calculate dvr? Chilling should be the same, diff photo for leafout and forcing between bb and lo or agdd until bb and then till lo?
