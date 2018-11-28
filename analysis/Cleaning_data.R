@@ -4,7 +4,7 @@
 ## Updated 19 Nov 2018 with new TS data & Climate data
 ### Weather data downloaded from... http://labs.arboretum.harvard.edu/weather/
 
-## NOTE! 20 November 2018 - need to make sure the data is cleaning
+## NOTE! 21 November 2018: messed up photoperiod data, need to fix!
 
 # ## housekeeping
 rm(list=ls()) 
@@ -122,46 +122,50 @@ dxx<-dxx[!is.na(dxx$last.obs),]
 
 dxx$id_year<-paste(dxx$ID, dxx$year)
 
-force<-data_frame()
+forcing<-data_frame()
 days.btw<-array()
 
 days.btw <- Map(seq, dxx$gdd.start, dxx$leafout, by = 1)
 
-force <- data.frame(id_year = rep.int(dxx$id_year, vapply(days.btw, length, 1L)), 
-                    doy = do.call(c, days.btw))
+forcing <- data.frame(id_year = rep.int(dxx$id_year, vapply(days.btw, length, 1L)), 
+                      doy = do.call(c, days.btw))
 
-force$ID<-as.integer(substr(force$id_year, 0, 6))
-force$year<-as.integer(substr(force$id_year, 7,11))
+forcing$ID<-as.integer(substr(forcing$id_year, 0, 6))
+forcing$year<-as.integer(substr(forcing$id_year, 7,11))
 
-force<-force[!duplicated(force),]
-force<-dplyr::select(force, -id_year)
-force$leafout<-ave(force$doy, force$ID, force$year, FUN=max)
+forcing<-forcing[!duplicated(forcing),]
+forcing<-dplyr::select(forcing, -id_year)
+forcing$leafout<-ave(forcing$doy, forcing$ID, forcing$year, FUN=max)
 
-force$gdd.start<-ave(force$doy, force$ID, force$year, FUN=min)
+forcing$gdd.start<-ave(forcing$doy, forcing$ID, forcing$year, FUN=min)
 
 
 cc<-dplyr::select(cc, year, doy, tmean)
 
-force<-inner_join(force, cc)
-force<-force[!duplicated(force),]
+forcing<-inner_join(forcing, cc)
+forcing<-forcing[!duplicated(forcing),]
 
-foober<-dxx%>%dplyr::select(Genus, Species, ID, year, elev, lat, long,budburst)
-force<-full_join(force, foober)
+foober<-dxx%>%dplyr::select(Genus, Species, ID, year, elev, lat, long, budburst)
+forcing<-full_join(forcing, foober)
 
-force$tmeanbb<-ifelse(force$doy>=force$gdd.start & force$doy<=force$budburst, force$tmean, force$force)
-force$force<-ave(force$tmeanbb, force$ID, force$year)
-force$tmeanlo<-ifelse(force$doy>=force$gdd.start & force$doy<=force$leafout, force$tmean, force$force)
-force$force.lo<-ave(force$tmeanlo, force$ID, force$year)
-force$gdd.bb<-ifelse(force$doy>=force$gdd.start & force$doy<=force$budburst & force$tmean>0, force$tmean, 0)
-force$gdd.bb<-ave(force$gdd.bb, force$ID, force$year, FUN=sum)
-force$gdd.lo<-ifelse(force$doy>=force$gdd.start & force$doy<=force$leafout & force$tmean>0, force$tmean, 0)
-force$gdd.lo<-ave(force$gdd.lo, force$ID, force$year, FUN=sum)
+forcebb<-forcing
+forcebb$tmeanbb<-ifelse(forcebb$doy>=forcebb$gdd.start & forcebb$doy<=forcebb$budburst, forcebb$tmean, NA)
+forcebb<-na.omit(forcebb)
+forcebb$tmeanbb<-as.numeric(forcebb$tmeanbb)
+forcebb$force<-ave(forcebb$tmeanbb, forcebb$ID, forcebb$year)
+forcing<-full_join(forcing, forcebb)
+forcing$tmeanlo<-ifelse(forcing$doy>=forcing$gdd.start & forcing$doy<=forcing$leafout, forcing$tmean, forcing$force)
+forcing$force.lo<-ave(forcing$tmeanlo, forcing$ID, forcing$year)
+forcing$gdd.bb<-ifelse(forcing$doy>=forcing$gdd.start & forcing$doy<=forcing$budburst & forcing$tmean>0, forcing$tmean, 0)
+forcing$gdd.bb<-ave(forcing$gdd.bb, forcing$ID, forcing$year, FUN=sum)
+forcing$gdd.lo<-ifelse(forcing$doy>=forcing$gdd.start & forcing$doy<=forcing$leafout & forcing$tmean>0, forcing$tmean, 0)
+forcing$gdd.lo<-ave(forcing$gdd.lo, forcing$ID, forcing$year, FUN=sum)
 
 dxx$yrend<-ifelse(dxx$year==2016, 412, 411)
 
 days.btw <- Map(seq, dxx$last.obs, dxx$yrend, by = 1)
 chilldays <- data.frame(id_year = rep.int(dxx$id_year, vapply(days.btw, length, 1L)), 
-                      doy2 = do.call(c, days.btw))
+                        doy2 = do.call(c, days.btw))
 
 chilldays$ID<-as.integer(substr(chilldays$id_year, 0, 6))
 chilldays$year<-as.integer(substr(chilldays$id_year, 7,11))
@@ -193,42 +197,91 @@ chilldays$chill<-ifelse(chilldays$doy2>=chilldays$chill.start, ave(chilldays$tme
 chilldays$achill<-ifelse(chilldays$doy2>=chilldays$chill.start & chilldays$doy2<=chilldays$chill.end & chilldays$tmean>=0 & chilldays$tmean<=5, chilldays$tmean, 0)
 chilldays$achill<-ave(chilldays$achill, chilldays$ID, chilldays$year, FUN=sum)
 
-force<-dplyr::select(force, -tmean, -doy, -gdd.start)
+forcing<-dplyr::select(forcing, -tmean, -doy, -gdd.start, -tmeanbb, -tmeanlo)
+forcing<-forcing[!duplicated(forcing),]
 chilldays<-dplyr::select(chilldays, -doy2, -year2, -tmean, -doy, -chill.start, -chill.end)
-tree<-full_join(force, chilldays)
+chilldays<-chilldays[!duplicated(chilldays),]
+tree<-full_join(forcing, chilldays)
 
 tree<-tree[!duplicated(tree),]
 #tree<-na.omit(tree)
 
-photos<-data_frame()
+photos<-data_frame() #### Need to fix after Thanksgiving!
 days.btw<-array()
 
 days.btw <- Map(seq, dxx$gdd.start, dxx$leafout, by = 1)
 
 photos <- data.frame(id_year = rep.int(dxx$id_year, vapply(days.btw, length, 1L)), 
-                    doy = do.call(c, days.btw))
+                     doy = do.call(c, days.btw))
 
 photos$ID<-as.integer(substr(photos$id_year, 0, 6))
 photos$year<-as.integer(substr(photos$id_year, 7,11))
 
 photos<-full_join(photos, foober)
 
-photos<-photos[!duplicated(photos),]
+goob<-stan.bb%>% ungroup(phase)%>%
+  dplyr::select(Genus, Species, ID, year, elev, lat, long, doy, photo)
 photos<-dplyr::select(photos, -id_year)
+photos<-full_join(photos, goob)
+
+photos$photo<-ifelse(is.na(photos$photo), geosphere::daylength(photos$lat, photos$doy), photos$photo)
+
+photos<-na.omit(photos)
+photos<-photos[!duplicated(photos),]
 photos$leafout<-ave(photos$doy, photos$ID, photos$year, FUN=max)
 
-photos$pho.start<-ave(photos$doy, photos$ID, photos$year, FUN=min)
-goo<-stan.bb%>% ungroup(phase, ID, year) %>%
-  dplyr::select(ID, year, doy, photo)
-photos<-full_join(photos, goo)
+dayslo<-photos%>%dplyr::select(ID, elev, doy, year, photo, leafout)
+dayslo<-dayslo[!duplicated(dayslo),]
 
-photos$m.photo.bb<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$budburst, ave(photos$photo, photos$ID, photos$year), photos$photo)
-photos$m.photo.lo<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$budburst, ave(photos$photo, photos$ID, photos$year), photos$photo)
-photos$photo.bb<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$budburst, ave(photos$photo, photos$ID, photos$year, FUN=sum), photos$photo)
+dayslo$lophoto<-ifelse(dayslo$doy==dayslo$leafout, dayslo$photo, NA)
+
+dayslo<-na.omit(dayslo)
+dayslo<-dplyr::select(dayslo, -doy, -photo)
+
+daysbb<-photos%>%dplyr::select(ID, doy, year, photo, budburst)
+daysbb<-daysbb[!duplicated(daysbb),]
+daysbb$bbphoto<-NA
+daysbb$bbphoto<-ifelse(daysbb$doy==daysbb$budburst, daysbb$photo, NA)
+daysbb<-na.omit(daysbb)
+daysbb<-dplyr::select(daysbb, -doy, -photo)
+
+days<-full_join(dayslo, daysbb)
+days<-days%>%dplyr::select(ID, lophoto, bbphoto, year)
+days<-days[!duplicated(days),]
+
+photos<-full_join(photos, days)
+photos<-photos[!duplicated(photos),]
+
+photos$pho.start<-46
+#goo<-stan.bb%>% ungroup(phase, ID, year) %>%
+# dplyr::select(ID, year, doy, photo)
+#photos<-full_join(photos, goo)
+
+photobb<-photos
+photobb$photobb<-ifelse(photobb$doy>=photobb$pho.start & photobb$doy<=photobb$budburst, photobb$photo, NA)
+photobb<-na.omit(photobb)
+photobb$photobb<-as.numeric(photobb$photobb)
+photobb$m.photo.bb<-ave(photobb$photobb, photobb$ID, photobb$year)
+photos<-full_join(photos, photobb)
+
+photos$m.photo.lo<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$leafout, ave(photos$photo, photos$ID, photos$year), photos$photo)
+photos$photo.bb<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$budburst, photos$photo , 0)
+photos$photo.bb<-ave(photos$photo.bb, photos$ID, photos$year, FUN=sum)
 photos$photo.lo<-ifelse(photos$doy>=photos$pho.start & photos$doy<=photos$leafout, ave(photos$photo, photos$ID, photos$year, FUN=sum), photos$photo)
 
 
-photos<-photos%>%dplyr::select(-doy, -pho.start)
+photos<-photos%>%dplyr::select(-doy, -pho.start, -photobb, -photo)
+photos<-photos[!duplicated(photos),]
+photos<-photos[!is.na(photos$m.photo.bb),]
+
+tree<-tree[!is.na(tree$force),]
+
 tree<-full_join(tree, photos)
 tree<-tree[!duplicated(tree),]
 
+tree$dvr<-tree$leafout-tree$budburst
+
+write.csv(tree, file="output/cleaned_tree_allcues.csv", row.names = FALSE)
+
+library(brms)
+mod<-brm(dvr~bbphoto+force+chill+(1|Species), data=tree)
