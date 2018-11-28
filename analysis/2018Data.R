@@ -249,3 +249,23 @@ box<-ggplot(d.17, aes(x=spp, y=dvr, fill=spp, alpha=type)) + geom_boxplot(aes(fi
         plot.margin = unit(c(1.5,1.5,1.0,1.5), "lines"), axis.title.x = element_blank(), 
         axis.ticks.x = element_blank()) + ylab("Duration of Vegetative Risk") + guides(alpha=guide_legend(override.aes=list(fill=hcl(c(15,195),100,0,alpha=c(0.2,0.7)))), col=FALSE, fill=FALSE)
 
+
+
+##### Fall stuffs! 
+bb18<-read.csv("output/clean_alldata.csv", header=TRUE)
+bb18<-subset(bb18, bb18$year==2018)
+
+bb18<-subset(bb18, select=c("Genus", "Species", "col.leaves", "leafdrop"))
+bb18$spp<-paste(bb18$Genus, bb18$Species, sep=" ")
+
+quartz()
+box<-ggplot(bb18, aes(x=spp, y=leafdrop, fill=spp)) + geom_boxplot(aes(fill=as.factor(spp), col=as.factor(spp))) +
+  theme_classic() + scale_alpha_manual(name="Dataset", values=c(0.2, 1), labels=c("TreeSpotters", "Harvard Forest")) +
+  scale_y_continuous(expand = c(0, 0)) + #coord_cartesian(ylim=c(80,135)) +
+  theme(text=element_text(family="Helvetica"),legend.text.align = 0, axis.text.x = element_text(face = "italic", angle=45, hjust=1),
+        plot.margin = unit(c(1.5,1.5,1.0,1.5), "lines"), axis.title.x = element_blank(), legend.position = "none",
+        axis.ticks.x = element_blank()) + ylab("Duration of Vegetative Risk") 
+
+
+
+
