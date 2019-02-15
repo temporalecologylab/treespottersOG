@@ -348,13 +348,13 @@ histtotal<-ggplot(allobsers, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3,
 
 
 cols <- colorRampPalette(c("blue", "red"))
-hist2016<-ggplot(total.numobs.six, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(33)) +
+hist2016<-ggplot(total.numobs.six, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(34)) +
   xlab("Number of Observations") + ylab("Number of Observers") +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
         axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10))
 
-hist2017<-ggplot(total.numobs.seven, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(52)) +
+hist2017<-ggplot(total.numobs.seven, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(53)) +
   xlab("Number of Observations") + ylab("Number of Observers") +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
