@@ -66,6 +66,9 @@ dx$species<-ifelse(dx$species=="Quealb", "Quercus alba", dx$species)
 dx$species<-ifelse(dx$species=="Querub", "Quercus rubra", dx$species)
 dx$species<-ifelse(dx$species=="Tilame", "Tilia americana", dx$species)
 
+newspp <- c("Acerub", "Hamvir", "Vaccor", "Vibnud")
+dx <- dx[!(dx$species %in% newspp),]
+
 dvr<-dx
 dvr$pheno<-ifelse(dvr$pheno=="Breaking leaf buds", "bb", dvr$pheno)
 dvr$pheno<-ifelse(dvr$pheno=="Leaves", "lo", dvr$pheno)
@@ -86,6 +89,8 @@ cols <- colorRampPalette(brewer.pal(3,"Set1"))(3)
 
 #dvr<-dvr[!(dvr$species=="Fagus grandifolia" & dvr$year==2018)]
 dvr$code<-reorder(dvr$species, dvr$risk)
+
+
 
 quartz()
 frost<- ggplot(dvr, aes(x=code, y=risk)) + geom_point(aes(color=as.factor(year))) + ylab("Frost Risk") +
@@ -108,15 +113,82 @@ dx.r<-inner_join(dx.r, xx)
 
 ####### Stop here Jun 19, 2018 - issues with mapping budburst date #########
 dx.r$code<-reorder(dx.r$species, dx.r$mean)
-dvr2<-ggplot(dx.r, aes(x=code, y=mean)) + geom_point(aes(color=pheno)) +
-  geom_line() + coord_flip() + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
+cols <- colorRampPalette(brewer.pal(3, "Dark2"))(3)
+dx.r$colz <-ifelse(dx.r$pheno=="Breaking leaf buds", "salmon3", "royalblue3")
+dvr2016<-ggplot(dx.r[(dx.r$year==2016),], aes(x=code, y=mean)) + geom_point(aes(color=colz,shape=pheno)) +
+  geom_line(col="green4", alpha=0.3) + ylab("Day of Year") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
                                                                             axis.text.y = element_text(face = "italic"),
                                                                             axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
                                                                             legend.box.background = element_rect(),
                                                                             panel.spacing = unit(2, "lines"),
-                                                                            strip.background = element_rect(fill="transparent"),
-                                                                            strip.text = element_text(size=14)) + labs(col="Phenophase") + 
-  facet_wrap(~year) + geom_hline(aes(yintercept=bb.yr), xx, col="forestgreen", linetype="dashed")
+                                                                            plot.title = element_text(color="#1B9E77"),
+                                                                            legend.position = "none",
+                                                                  axis.title.y = element_blank()) + labs(col="Phenophase") + 
+  geom_hline(aes(yintercept=bb.yr), xx[(xx$year==2016),], col="black", linetype="dashed") +
+  scale_shape_manual(name="Phenophase", values=c(16, 17), labels=c("Budburst", "Leafout")) +
+  scale_color_manual(name="Phenophase", values=c("salmon3", "royalblue3"), labels=c("Budburst", "Leafout")) + ggtitle("2016") +
+  scale_y_continuous(breaks=seq(min(100), max(140), by=10)) + coord_flip(ylim=c(100,140)) 
+
+dvr2017<-ggplot(dx.r[(dx.r$year==2017),], aes(x=code, y=mean)) + geom_point(aes(color=colz,shape=pheno)) +
+  geom_line(col="green4", alpha=0.3) + ylab("Day of Year") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                                                                                                   axis.text.y = element_blank(),
+                                                                                    axis.title.y = element_blank(),
+                                                                                    axis.ticks.y = element_blank(),
+                                                                                                   axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
+                                                                                                   legend.box.background = element_rect(),
+                                                                                                   plot.title = element_text(color="#D95F02"),
+                                                                                                   legend.position="none") + labs(col="Phenophase") + 
+  geom_hline(aes(yintercept=bb.yr), xx[(xx$year==2017),], col="black", linetype="dashed") +
+  scale_shape_manual(name="Phenophase", values=c(16, 17), labels=c("Budburst", "Leafout")) +
+  scale_color_manual(name="Phenophase", values=c("salmon3", "royalblue3"), labels=c("Budburst", "Leafout")) + ggtitle("2017")+
+  scale_y_continuous(breaks=seq(min(100), max(140), by=10)) + coord_flip(ylim=c(100,140)) 
+
+dvr2018<-ggplot(dx.r[(dx.r$year==2018),], aes(x=code, y=mean)) + geom_point(aes(color=colz,shape=pheno)) +
+  geom_line(col="green4", alpha=0.3) + coord_flip(ylim=c(100,140)) + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                                                                                                                  axis.text.y = element_blank(),
+                                                                                                                  axis.title.y = element_blank(),
+                                                                                                                  axis.ticks.y = element_blank(),
+                                                                                                   axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
+                                                                                                   legend.box.background = element_rect(),
+                                                                                                   plot.title = element_text(color="#7570B3"),
+                                                                                                   legend.text = element_text(size=7),
+                                                                                                   legend.title = element_text(size=8)) + labs(col="Phenophase") + 
+  geom_hline(aes(yintercept=bb.yr), xx[(xx$year==2018),], col="black", linetype="dashed") +
+  scale_shape_manual(name="Phenophase", values=c(16, 17), labels=c("Budburst", "Leafout")) +
+  scale_color_manual(name="Phenophase", values=c("salmon3", "royalblue3"), labels=c("Budburst", "Leafout")) + ggtitle("2018") +
+  scale_y_continuous(breaks=seq(min(100), max(140), by=10))
+
+
+allyrs <- ggarrange(dvr2016, dvr2017, dvr2018, ncol=3)
+
+
+### Let's add in Climate data now
+clim <- read.csv("weldclimate.csv", header=TRUE)
+clim$hour <- NULL
+clim <- clim[(clim$year>2015),]
+clim <- clim[!duplicated(clim),]
+
+spring <- clim[(clim$doy>=1 & clim$doy<=140),]
+#spring$year <- as.integer(spring$year)
+spring$Temp..F <- ave(spring$Temp..F, spring$date)
+spring <- spring[!duplicated(spring),]
+spring$tmean <- (spring$Temp..F - 32) * (5/9)
+
+climate <- ggplot(spring, aes(x=doy, y=tmean, col=as.factor(year))) + #geom_point(aes(col=as.factor(year)), alpha=0.1) +
+  geom_smooth(aes(col=as.factor(year), fill=as.factor(year)), stat="smooth", method="loess", se=TRUE, span=0.9) + 
+  scale_color_manual(name = "Year", values=cols, labels = c("2016", "2017", "2018")) +
+   scale_fill_manual(name = "Year", values=cols, labels = c("2016", "2017", "2018")) +
+  theme_classic() + xlab("Day of Year") + ylab("Mean \n Temperature (°C)") +
+  coord_cartesian(ylim=c(-8, 18), expand=0) + scale_x_continuous(breaks = seq(min(0), max(140), by=30)) +
+  scale_y_continuous(breaks=seq(min(-8), max(18), by=4)) + theme(panel.spacing = unit(c(0,0,5,5),"cm"),
+                                                                 legend.text = element_text(size=7),
+                                                                 legend.title = element_text(size=8),
+                                                                 legend.key.size = unit(0.8,"line"))
+
+
+grid.arrange(allyrs, climate, nrow=3, heights = c(3, 0.5, 1.3), layout_matrix=rbind(c(1, 1, 1),
+                                                                             c(NA),
+                                                                             c(NA, 2, 2, 2, NA)))
 
 
 dx.h<-filter(dx, pheno!="Breaking leaf buds")
@@ -336,25 +408,42 @@ t18<-t18[(t18$Freq>0),]
 table(t18$years)
 }
 
-cols <- colorRampPalette(brewer.pal(3, "Set1"))
-histtotal<-ggplot(allobsers, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, aes(fill=year)) +
-  scale_fill_manual(values=cols, name="Year",
-                    labels=c("2016","2017", "2018"))
-  xlab("Number of Observations") + ylab("Number of Observers") +
-  theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
-        legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
-        axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10))
-                         
 
 
 cols <- colorRampPalette(c("blue", "red"))
-hist2016<-ggplot(total.numobs.six, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(34)) +
+visits<-ggplot(allobsers, aes(x=numdays)) + geom_histogram(binwidth = 5, size=0.3, fill=cols(18)) +
+  xlab("Number of Visits") + ylab("Number of Observers") + coord_cartesian(expand =c(0, 0)) +
+  theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
+        axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10)) +
+  scale_x_continuous(breaks = seq(min(0), max(100), by=10))
+
+cols <- colorRampPalette(brewer.pal(3, "Set1"))(3)
+obsersvations<-ggplot(allobsers, aes(x=as.factor(year), y=n)) + geom_boxplot(aes(fill=as.factor(year), group=as.factor(year), y=n)) +
+  scale_fill_manual(values=cols, labels = c("2016", "2017", "2018")) +
+  xlab("Year") + ylab("Number of Observerations") + #coord_cartesian(expand =c(0, 0)) +
+  theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        legend.position = "none", legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
+        axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10)) 
+                         
+
+box.visits<-ggplot(allobsers, aes(x=as.factor(year), y=numdays)) + geom_boxplot(aes(fill=as.factor(year), group=as.factor(year), y=numdays)) +
+  scale_fill_manual(values=cols, labels = c("2016", "2017", "2018")) +
+  xlab("Year") + ylab("Number of Visits") + #coord_cartesian(expand =c(0, 0)) +
+  theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        legend.position = "none", legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
+        axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10)) 
+
+
+
+cols <- colorRampPalette(c("blue", "red"))
+hist2016<-ggplot(total.numobs.six, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(33)) +
   xlab("Number of Observations") + ylab("Number of Observers") +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
         axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10))
 
-hist2017<-ggplot(total.numobs.seven, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(53)) +
+hist2017<-ggplot(total.numobs.seven, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(52)) +
   xlab("Number of Observations") + ylab("Number of Observers") +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
