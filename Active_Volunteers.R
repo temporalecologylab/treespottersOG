@@ -459,3 +459,4 @@ quartz()
 ggarrange(hist2016, hist2017, hist2018, ncol=3)
 
 
+write.csv(allobsers, file="~/Documents/git/treespotters/analysis/output/activevolunteers.csv", row.names=FALSE)
