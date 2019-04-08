@@ -258,6 +258,20 @@ bb18<-subset(bb18, bb18$year==2018)
 bb18<-subset(bb18, select=c("Genus", "Species", "col.leaves", "leafdrop"))
 bb18$spp<-paste(bb18$Genus, bb18$Species, sep=" ")
 
+dts18<-subset(bb, bb$year==2018)
+dts17$type<-"TreeSpotters"
+dts17<-dplyr::select(dts17, spp, budburst, leafout, type)
+dts17$dvr<-dts17$leafout-dts17$budburst
+dts17<-dplyr::select(dts17, -budburst, -leafout)
+
+dok17<-ok17%>%ungroup%>%dplyr::select(spp, bb, type, lo)
+dok17$dvr<-dok17$lo-dok17$bb
+dok17<-dplyr::select(dok17, -bb, -lo)
+dok17<-dok17[!duplicated(dok17),]
+dok17$type<-"Z Harvard Forest"
+dts17<-dts17[!duplicated(dts17),]
+d.17<-full_join(dok17, dts17)
+
 quartz()
 box<-ggplot(bb18, aes(x=spp, y=leafdrop, fill=spp)) + geom_boxplot(aes(fill=as.factor(spp), col=as.factor(spp))) +
   theme_classic() + scale_alpha_manual(name="Dataset", values=c(0.2, 1), labels=c("TreeSpotters", "Harvard Forest")) +
