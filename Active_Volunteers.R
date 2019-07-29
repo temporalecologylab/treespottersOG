@@ -44,6 +44,8 @@ df$doy<-as.numeric(df$doy)
 df$mean<-ave(df$doy, df$pheno, df$year, df$species)
 #df$mean<-ifelse(df$pheno=="Leaves" & df$species=="Popdel" & df$year==2017, 110, df$mean)
 
+
+
 df<-ungroup(df)
 dx<-df%>%
   dplyr::select(species, pheno, year, mean)
@@ -113,9 +115,9 @@ dx.r<-inner_join(dx.r, xx)
 
 ####### Stop here Jun 19, 2018 - issues with mapping budburst date #########
 dx.r$code<-reorder(dx.r$species, dx.r$mean)
-cols <- colorRampPalette(brewer.pal(3, "Dark2"))(3)
+cols <- colorRampPalette(brewer.pal(4, "Dark2"))(4)
 dx.r$colz <-ifelse(dx.r$pheno=="Breaking leaf buds", "salmon3", "royalblue3")
-dvr2016<-ggplot(dx.r[(dx.r$year==2016),], aes(x=code, y=mean)) + geom_point(aes(color=colz,shape=pheno)) +
+dvr2016<-ggplot(dx.r[(dx.r$year==2016),], aes(x=code, y=mean)) + geom_point(aes(color=rev(colz),shape=pheno)) +
   geom_line(col="green4", alpha=0.3) + ylab("Day of Year") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
                                                                             axis.text.y = element_text(face = "italic"),
                                                                             axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
@@ -129,7 +131,7 @@ dvr2016<-ggplot(dx.r[(dx.r$year==2016),], aes(x=code, y=mean)) + geom_point(aes(
   scale_color_manual(name="Phenophase", values=c("salmon3", "royalblue3"), labels=c("Budburst", "Leafout")) + ggtitle("2016") +
   scale_y_continuous(breaks=seq(min(100), max(140), by=10)) + coord_flip(ylim=c(100,140)) 
 
-dvr2017<-ggplot(dx.r[(dx.r$year==2017),], aes(x=code, y=mean)) + geom_point(aes(color=colz,shape=pheno)) +
+dvr2017<-ggplot(dx.r[(dx.r$year==2017),], aes(x=code, y=mean)) + geom_point(aes(color=rev(colz),shape=pheno)) +
   geom_line(col="green4", alpha=0.3) + ylab("Day of Year") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
                                                                                                    axis.text.y = element_blank(),
                                                                                     axis.title.y = element_blank(),
@@ -143,11 +145,12 @@ dvr2017<-ggplot(dx.r[(dx.r$year==2017),], aes(x=code, y=mean)) + geom_point(aes(
   scale_color_manual(name="Phenophase", values=c("salmon3", "royalblue3"), labels=c("Budburst", "Leafout")) + ggtitle("2017")+
   scale_y_continuous(breaks=seq(min(100), max(140), by=10)) + coord_flip(ylim=c(100,140)) 
 
-dvr2018<-ggplot(dx.r[(dx.r$year==2018),], aes(x=code, y=mean)) + geom_point(aes(color=colz,shape=pheno)) +
+dvr2018<-ggplot(dx.r[(dx.r$year==2018),], aes(x=code, y=mean)) + geom_point(aes(color=rev(colz),shape=pheno)) +
   geom_line(col="green4", alpha=0.3) + coord_flip(ylim=c(100,140)) + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
                                                                                                                   axis.text.y = element_blank(),
                                                                                                                   axis.title.y = element_blank(),
                                                                                                                   axis.ticks.y = element_blank(),
+                                                                                                                  legend.position = "none",
                                                                                                    axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
                                                                                                    legend.box.background = element_rect(),
                                                                                                    plot.title = element_text(color="#7570B3"),
@@ -158,26 +161,41 @@ dvr2018<-ggplot(dx.r[(dx.r$year==2018),], aes(x=code, y=mean)) + geom_point(aes(
   scale_color_manual(name="Phenophase", values=c("salmon3", "royalblue3"), labels=c("Budburst", "Leafout")) + ggtitle("2018") +
   scale_y_continuous(breaks=seq(min(100), max(140), by=10))
 
+dvr2019<-ggplot(dx.r[(dx.r$year==2019),], aes(x=code, y=mean)) + geom_point(aes(color=rev(colz),shape=pheno)) +
+  geom_line(col="green4", alpha=0.3) + coord_flip(ylim=c(100,140)) + ylab("Day of Year") + xlab("Species") +theme(panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                                                                                                                  axis.text.y = element_blank(),
+                                                                                                                  axis.title.y = element_blank(),
+                                                                                                                  axis.ticks.y = element_blank(),
+                                                                                                                  axis.text=element_text(size=9), legend.key = element_rect(fill = "transparent"),
+                                                                                                                  legend.box.background = element_rect(),
+                                                                                                                  plot.title = element_text(color="#E7298A"),
+                                                                                                                  legend.text = element_text(size=7),
+                                                                                                                  legend.title = element_text(size=8)) + labs(col="Phenophase") + 
+  geom_hline(aes(yintercept=bb.yr), xx[(xx$year==2019),], col="black", linetype="dashed") +
+  scale_shape_manual(name="Phenophase", values=c(16, 17), labels=c("Budburst", "Leafout")) +
+  scale_color_manual(name="Phenophase", values=dx.r$colz, labels=c("Budburst", "Leafout")) + ggtitle("2019") +
+  scale_y_continuous(breaks=seq(min(100), max(140), by=10))
 
-allyrs <- ggarrange(dvr2016, dvr2017, dvr2018, ncol=3)
+
+allyrs <- ggarrange(dvr2016, dvr2017, dvr2018, dvr2019,  ncol=4)
 
 
 ### Let's add in Climate data now
-clim <- read.csv("weldclimate.csv", header=TRUE)
-clim$hour <- NULL
+clim <- read.csv("~/Documents/git/microclimates/analyses/output/clean_addinclimate.csv", header=TRUE)
+clim <- clim[(clim$climatetype=="weldhill"),]
 clim <- clim[(clim$year>2015),]
 clim <- clim[!duplicated(clim),]
 
 spring <- clim[(clim$doy>=1 & clim$doy<=140),]
 #spring$year <- as.integer(spring$year)
-spring$Temp..F <- ave(spring$Temp..F, spring$date)
-spring <- spring[!duplicated(spring),]
-spring$tmean <- (spring$Temp..F - 32) * (5/9)
+#spring$Temp..F <- ave(spring$Temp..F, spring$date)
+#spring <- spring[!duplicated(spring),]
+#spring$tmean <- (spring$Temp..F - 32) * (5/9)
 
 climate <- ggplot(spring, aes(x=doy, y=tmean, col=as.factor(year))) + #geom_point(aes(col=as.factor(year)), alpha=0.1) +
   geom_smooth(aes(col=as.factor(year), fill=as.factor(year)), stat="smooth", method="loess", se=TRUE, span=0.9) + 
-  scale_color_manual(name = "Year", values=cols, labels = c("2016", "2017", "2018")) +
-   scale_fill_manual(name = "Year", values=cols, labels = c("2016", "2017", "2018")) +
+  scale_color_manual(name = "Year", values=cols, labels = c("2016", "2017", "2018", "2019")) +
+   scale_fill_manual(name = "Year", values=cols, labels = c("2016", "2017", "2018", "2019")) +
   theme_classic() + xlab("Day of Year") + ylab("Mean \n Temperature (°C)") +
   coord_cartesian(ylim=c(-8, 18), expand=0) + scale_x_continuous(breaks = seq(min(0), max(140), by=30)) +
   scale_y_continuous(breaks=seq(min(-8), max(18), by=4)) + theme(panel.spacing = unit(c(0,0,5,5),"cm"),
@@ -186,7 +204,8 @@ climate <- ggplot(spring, aes(x=doy, y=tmean, col=as.factor(year))) + #geom_poin
                                                                  legend.key.size = unit(0.8,"line"))
 
 
-grid.arrange(allyrs, climate, nrow=3, heights = c(3, 0.5, 1.3), layout_matrix=rbind(c(1, 1, 1),
+quartz()
+grid.arrange(allyrs, climate, nrow=3, heights = c(3, 0.5, 1.3), layout_matrix=rbind(c(1, 1, 1, 1),
                                                                              c(NA),
                                                                              c(NA, 2, 2, 2, NA)))
 
@@ -364,9 +383,49 @@ roster <- read.csv("grouproster.csv", header=TRUE)
 roster <- roster %>% dplyr::select(Person_ID, User_Name, Name) %>%
   rename(observer = Person_ID)
 
+df<-dplyr::select(b, ObservedBy_Person_ID, First_Yes_Year, First_Yes_DOY)
+df[] <- lapply(df, gsub, pattern="'", replacement="")
+df<-filter(df, First_Yes_Year==2019)
+dnine<-df %>% 
+  mutate(ObservedBy_Person_ID = strsplit(as.character(ObservedBy_Person_ID), ",")) %>% 
+  unnest(ObservedBy_Person_ID)
+
+total.numobs.nine <- as.data.frame(table(sort(deight$ObservedBy_Person_ID)))
+total.numobs.nine <- data.frame(observer=total.numobs.nine$Var1, n=total.numobs.nine$Freq)
+numobs.nine <- subset(total.numobs.nine, total.numobs.nine$n>40) ## 35 Observers
+
+numobs.nine$observer <- as.character(numobs.nine$observer)
+numobs.nine$n <- as.numeric(numobs.nine$n)
+
+totobservs <- unique(numobs.nine$observer)
+
+numvisits.nine <- dnine %>%
+  filter(ObservedBy_Person_ID %in% totobservs) %>%
+  rename(doy = First_Yes_DOY) %>%
+  rename(observer = ObservedBy_Person_ID) %>%
+  rename(year = First_Yes_Year)
+
+numvisits.nine <- numvisits.nine[!duplicated(numvisits.nine),]
+
+numvisits.nine$numdays <- as.numeric(ave(numvisits.nine$doy, numvisits.nine$observer, FUN=length))
+
+numvisits.nine <- subset(numvisits.nine, numvisits.nine$numdays>3)
+numvisits.nine$doy <- as.numeric(numvisits.nine$doy)
+numvisits.nine$first <- ave(numvisits.nine$doy, numvisits.nine$observer, FUN=min)
+numvisits.nine$last <- ave(numvisits.nine$doy, numvisits.nine$observer, FUN=max)
+
+numvisits.nine$daysbtw <- numvisits.nine$last - numvisits.nine$first
+
+
+numvisits.nine$doy <- NULL
+numvisits.nine <- numvisits.nine[!duplicated(numvisits.nine),]
+
+observers.19 <- full_join(numobs.nine, numvisits.nine)
+
 
 allobsers <- full_join(observers.16, observers.17)
 allobsers <- full_join(allobsers, observers.18)
+allobsers <- full_join(allobsers, observers.19)
 roster$observer <- as.character(roster$observer)
 allobsers <- full_join(allobsers, roster)
 
@@ -395,6 +454,7 @@ length(unique(deight$ObservedBy_Person_ID))
 
 obs<-full_join(dsix, dseven)
 obs<-full_join(obs, deight)
+obs <- full_join(obs, dnine)
 obs<-obs[!duplicated(obs),]
 
 tt<-as.data.frame(table(obs$First_Yes_Year, obs$ObservedBy_Person_ID))
@@ -411,16 +471,17 @@ table(t18$years)
 
 
 cols <- colorRampPalette(c("blue", "red"))
-visits<-ggplot(allobsers, aes(x=numdays)) + geom_histogram(binwidth = 5, size=0.3, fill=cols(18)) +
+visits<-ggplot(allobsers, aes(x=numdays)) + geom_histogram(binwidth = 5, size=0.3, fill=cols(19)) +
   xlab("Number of Visits") + ylab("Number of Observers") + coord_cartesian(expand =c(0, 0)) +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
         axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10)) +
   scale_x_continuous(breaks = seq(min(0), max(100), by=10))
 
-cols <- colorRampPalette(brewer.pal(3, "Set1"))(3)
+cols <- colorRampPalette(brewer.pal(4, "Set1"))(4)
+allobsers$year<-ifelse(is.na(allobsers$year), 2019, allobsers$year)
 obsersvations<-ggplot(allobsers, aes(x=as.factor(year), y=n)) + geom_boxplot(aes(fill=as.factor(year), group=as.factor(year), y=n)) +
-  scale_fill_manual(values=cols, labels = c("2016", "2017", "2018")) +
+  scale_fill_manual(values=cols, labels = c("2016", "2017", "2018", "2019")) +
   xlab("Year") + ylab("Number of Observerations") + #coord_cartesian(expand =c(0, 0)) +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         legend.position = "none", legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
@@ -451,6 +512,15 @@ hist2017<-ggplot(total.numobs.seven, aes(x=n)) + geom_histogram(binwidth = 11, s
 
 hist2018<-ggplot(total.numobs.eight, aes(x=n)) + geom_histogram(binwidth = 11, size=0.3, fill=cols(33)) +
   xlab("Number of Observations") + ylab("Number of Observers") +
+  theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
+        axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10))
+
+
+library(viridis)
+cols <- viridis_pal(option="D")(63)
+histall<-ggplot(allobsers, aes(x=totalobs)) + geom_histogram(binwidth = 20, size=0.6, fill=cols) +
+  xlab("Number of Observations") + ylab("Number of Observers") + coord_cartesian(expand=c(0,0)) +
   theme(panel.background = element_blank(), axis.line = element_line(colour = "black"), 
         legend.position = c(0.05,0.85), legend.text = element_text(size=8), legend.key.size = unit(0.5, "cm"),
         axis.title=element_text(size=12), legend.title = element_text(size=8), axis.text=element_text(size=10))
