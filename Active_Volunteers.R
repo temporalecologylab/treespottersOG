@@ -499,10 +499,50 @@ numvisits.nine <- numvisits.nine[!duplicated(numvisits.nine),]
 
 observers.19 <- full_join(numobs.nine, numvisits.nine)
 
+df<-dplyr::select(b, ObservedBy_Person_ID, First_Yes_Year, First_Yes_DOY)
+df[] <- lapply(df, gsub, pattern="'", replacement="")
+df<-filter(df, First_Yes_Year==2020)
+dtwo<-df %>% 
+  mutate(ObservedBy_Person_ID = strsplit(as.character(ObservedBy_Person_ID), ",")) %>% 
+  unnest(ObservedBy_Person_ID)
+
+total.numobs.two <- as.data.frame(table(sort(dtwo$ObservedBy_Person_ID)))
+total.numobs.two <- data.frame(observer=total.numobs.two$Var1, n=total.numobs.two$Freq)
+numobs.two <- subset(total.numobs.two, total.numobs.two$n>40) ## 35 Observers
+
+numobs.two$observer <- as.character(numobs.two$observer)
+numobs.two$n <- as.numeric(numobs.two$n)
+
+totobservs <- unique(numobs.two$observer)
+
+numvisits.two <- dtwo %>%
+  filter(ObservedBy_Person_ID %in% totobservs) %>%
+  rename(doy = First_Yes_DOY) %>%
+  rename(observer = ObservedBy_Person_ID) %>%
+  rename(year = First_Yes_Year)
+
+numvisits.two <- numvisits.two[!duplicated(numvisits.two),]
+
+numvisits.two$numdays <- as.numeric(ave(numvisits.two$doy, numvisits.two$observer, FUN=length))
+
+numvisits.two <- subset(numvisits.two, numvisits.two$numdays>3)
+numvisits.two$doy <- as.numeric(numvisits.two$doy)
+numvisits.two$first <- ave(numvisits.two$doy, numvisits.two$observer, FUN=min)
+numvisits.two$last <- ave(numvisits.two$doy, numvisits.two$observer, FUN=max)
+
+numvisits.two$daysbtw <- numvisits.two$last - numvisits.two$first
+
+
+numvisits.two$doy <- NULL
+numvisits.two <- numvisits.two[!duplicated(numvisits.two),]
+
+observers.20 <- full_join(numobs.two, numvisits.two)
+
 
 allobsers <- full_join(observers.16, observers.17)
 allobsers <- full_join(allobsers, observers.18)
 allobsers <- full_join(allobsers, observers.19)
+allobsers <- full_join(allobsers, observers.20)
 roster$observer <- as.character(roster$observer)
 allobsers <- full_join(allobsers, roster)
 
