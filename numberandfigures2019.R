@@ -1,6 +1,6 @@
 ### Time to visualize the numbers
 # 29 July 2019 - Cat
-
+#change by crd to see if it works
 # Clear workspace
 rm(list=ls()) # remove everything currently held in the R memory
 options(stringsAsFactors=FALSE)
